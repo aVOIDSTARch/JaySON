@@ -1,0 +1,16 @@
+// Brainstorming for project.
+
+Requirements
+1. Must be able to parse and validate JSON schemas against industry standards.
+2. Must be able to generate a report of non-compliance in simple formatted text file. The report should have terminal version that is formatted text, a markdown version, and a basic html with inline css formats in three separate format type files that are loaded whne the command is called so they can be independently updated
+3. Must be set up to be imported easily into any typescript project as ES5 module.
+4. Must be able to run on the command line with minimal setup interaction from the user - preferably just jayson init as the basic command to setup
+5. Must be able to read and write from any valid JSON file.
+6. Must be able to return human comprehensible errors that explain why a process failed in specific ie "the property 'wirl' does not exist at this level in the object."
+7. Should be able to create a new object from a schema.
+8. Must have the appropriate minimal dependencies listed
+9. Should have a way to download new JSON standards as an update.
+10. Should be able to generate standard compliant .ts and .js that contain a schema converted into a type or class respectively that is a es5 module ready for import - other languages to come
+11. It must be primarily an ES5 module project that has secondary support for commonjs
+12. the validate command should check if an update is available after checking if it has internet access and suggest an update to the user if one is available as weill as a parameter for selecting any standard and identifying standards in existing schemas/objects
+13. Must be broken into modules for each major function.
