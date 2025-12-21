@@ -1,9 +1,20 @@
 /**
- * Terminal Format - Plain text formatting for terminal output
+ * @fileoverview Terminal Format - Plain text formatting for terminal output
+ * @module util/formats/terminal-format
+ * @description Provides text-based formatting of validation results for terminal/console
+ * display. Outputs reports with ASCII decorators (=, -) for visual structure.
  */
 
 import type { ValidationResult, ValidationError } from "../json-types.js";
 
+/**
+ * Options for formatting reports.
+ * @interface ReportOptions
+ * @property {string} [title] - Title to display in the report header
+ * @property {string} [filePath] - Path of the validated file to display
+ * @property {string} [schemaPath] - Path of the schema used for validation
+ * @property {boolean} [timestamp] - Whether to include a timestamp (default: true)
+ */
 export interface ReportOptions {
     title?: string;
     filePath?: string;
@@ -12,7 +23,16 @@ export interface ReportOptions {
 }
 
 /**
- * Format a validation result for terminal display
+ * Formats a validation result for terminal display.
+ * Creates a structured text report with ASCII borders and clear sections.
+ *
+ * @param {ValidationResult} result - The validation result to format
+ * @param {ReportOptions} [options={}] - Formatting options
+ * @returns {string} Formatted plain text report
+ *
+ * @example
+ * const result = { valid: false, errors: [{ path: "name", message: "Required" }] };
+ * console.log(formatReport(result, { title: "User Validation" }));
  */
 export function formatReport(result: ValidationResult, options: ReportOptions = {}): string {
     const lines: string[] = [];
@@ -62,7 +82,12 @@ export function formatReport(result: ValidationResult, options: ReportOptions = 
 }
 
 /**
- * Format a single validation error
+ * Formats a single validation error for terminal display.
+ *
+ * @param {ValidationError} error - The error to format
+ * @param {number} index - Error number for display
+ * @returns {string} Formatted error text
+ * @private
  */
 function formatError(error: ValidationError, index: number): string {
     const lines: string[] = [];
@@ -80,7 +105,11 @@ function formatError(error: ValidationError, index: number): string {
 }
 
 /**
- * Format a value for display
+ * Formats a value for display, truncating long values.
+ *
+ * @param {unknown} value - Value to format
+ * @returns {string} String representation of the value
+ * @private
  */
 function formatValue(value: unknown): string {
     if (value === null) return "null";
@@ -98,7 +127,12 @@ function formatValue(value: unknown): string {
 }
 
 /**
- * Center text within a given width
+ * Centers text within a given width using padding.
+ *
+ * @param {string} text - Text to center
+ * @param {number} width - Total width to center within
+ * @returns {string} Padded text
+ * @private
  */
 function centerText(text: string, width: number): string {
     const padding = Math.max(0, Math.floor((width - text.length) / 2));
@@ -106,7 +140,19 @@ function centerText(text: string, width: number): string {
 }
 
 /**
- * Format a summary of multiple validation results
+ * Formats a summary of multiple validation results for terminal display.
+ * Shows aggregate statistics and a list of all validated files with their status.
+ *
+ * @param {Map<string, ValidationResult>} results - Map of file paths to validation results
+ * @param {ReportOptions} [options={}] - Formatting options
+ * @returns {string} Formatted summary text
+ *
+ * @example
+ * const results = new Map([
+ *   ["./user1.json", { valid: true, errors: [] }],
+ *   ["./user2.json", { valid: false, errors: [{ path: "", message: "Invalid" }] }]
+ * ]);
+ * console.log(formatSummary(results, { title: "Batch Results" }));
  */
 export function formatSummary(
     results: Map<string, ValidationResult>,

@@ -11,6 +11,9 @@ export default defineConfig({
         // Global test timeout
         testTimeout: 10000,
 
+        // Run test files sequentially to avoid temp directory conflicts
+        fileParallelism: false,
+
         // Coverage configuration
         coverage: {
             provider: "v8",

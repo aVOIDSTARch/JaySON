@@ -1,11 +1,21 @@
 /**
- * JSON Maker - A utility for working with JSON schemas
- * Provides functionality to:
- * - Load and parse JSON schemas
- * - Validate JSON data against schemas
- * - Create JSON files from data
- * - Read and extract data from JSON files
- * - Transform data between different sources
+ * @fileoverview JaySON - A comprehensive JSON Schema validation and manipulation library
+ * @module jayson
+ * @description A TypeScript/JavaScript library for working with JSON Schemas. Provides
+ * comprehensive functionality for schema validation, data transformation, type generation,
+ * and report creation. Supports JSON Schema drafts 04, 06, 07, 2019-09, and 2020-12.
+ *
+ * @example
+ * // Import the default instance
+ * import { jsonMaker, validateJson, readJson, writeJson } from "jayson";
+ *
+ * // Validate data against a schema
+ * const result = validateJson({ name: "John" }, "./schemas/user.json");
+ *
+ * // Or use the class for more control
+ * import { JsonMaker } from "jayson";
+ * const maker = new JsonMaker("./my-schemas");
+ * const data = maker.readData({ type: "file", path: "./data.json" });
  */
 
 import * as fs from "fs";
@@ -80,25 +90,52 @@ import {
 } from "./util/type-generator.js";
 
 /**
- * JSON Maker class for schema validation and JSON file operations
+ * Main class for JSON Schema validation and JSON file operations.
+ * Provides a unified interface for loading schemas, validating data,
+ * reading/writing JSON files, transforming data, and generating code.
+ *
+ * @class JsonMaker
+ * @example
+ * const maker = new JsonMaker("./schemas");
+ *
+ * // Validate data
+ * const result = maker.validate({ name: "John" }, "user.json");
+ *
+ * // Generate TypeScript types
+ * const tsCode = maker.generateTypeScript("user.json");
  */
 export class JsonMaker {
+    /** @private Cache for loaded schemas to avoid re-reading files */
     private schemaCache: Map<string, JsonSchema> = new Map();
+    /** @private Base directory for resolving relative schema paths */
     private schemaDir: string;
 
+    /**
+     * Creates a new JsonMaker instance.
+     *
+     * @param {string} [schemaDir="./json-schema"] - Base directory for schema files
+     */
     constructor(schemaDir: string = "./json-schema") {
         this.schemaDir = schemaDir;
     }
 
     /**
-     * Load a JSON schema from file
+     * Loads a JSON schema from a file.
+     * Schemas are cached for subsequent requests.
+     *
+     * @param {string} schemaPath - Path to schema file (absolute or relative to schemaDir)
+     * @returns {JsonSchema} The parsed JSON Schema object
+     * @throws {Error} If the schema file is not found
      */
     loadSchema(schemaPath: string): JsonSchema {
         return loadSchemaUtil(schemaPath, this.schemaDir, this.schemaCache);
     }
 
     /**
-     * Get information about a schema
+     * Gets metadata information about a schema.
+     *
+     * @param {string} schemaPath - Path to schema file
+     * @returns {SchemaInfo} Schema metadata including title, description, and properties
      */
     getSchemaInfo(schemaPath: string): SchemaInfo {
         const schema = this.loadSchema(schemaPath);
@@ -106,7 +143,11 @@ export class JsonMaker {
     }
 
     /**
-     * Validate data against a schema
+     * Validates data against a JSON Schema.
+     *
+     * @param {unknown} data - The data to validate
+     * @param {string} schemaPath - Path to the schema file
+     * @returns {ValidationResult} Validation result with valid flag and any errors
      */
     validate(data: unknown, schemaPath: string): ValidationResult {
         const schema = this.loadSchema(schemaPath);
@@ -114,7 +155,12 @@ export class JsonMaker {
     }
 
     /**
-     * Validate a JSON file against a schema
+     * Validates a JSON file against a schema.
+     * Reads and parses the file, then validates its contents.
+     *
+     * @param {string} filePath - Path to the JSON file to validate
+     * @param {string} schemaPath - Path to the schema file
+     * @returns {ValidationResult} Validation result with valid flag and any errors
      */
     validateFile(filePath: string, schemaPath: string): ValidationResult {
         if (!fs.existsSync(filePath)) {
@@ -142,7 +188,11 @@ export class JsonMaker {
     }
 
     /**
-     * Validate multiple files against a schema
+     * Validates multiple JSON files against a schema.
+     *
+     * @param {string[]} filePaths - Array of file paths to validate
+     * @param {string} schemaPath - Path to the schema file
+     * @returns {Map<string, ValidationResult>} Map of file paths to validation results
      */
     validateFiles(
         filePaths: string[],
@@ -158,21 +208,36 @@ export class JsonMaker {
     }
 
     /**
-     * Read data from a source
+     * Reads data from a configured source.
+     * Supports file, inline, and URL data sources.
+     *
+     * @param {DataSourceConfig} config - Data source configuration
+     * @returns {unknown} The parsed data
      */
     readData(config: DataSourceConfig): unknown {
         return readDataUtil(config);
     }
 
     /**
-     * Write data to a JSON file
+     * Writes data to a JSON file.
+     *
+     * @param {unknown} data - Data to write
+     * @param {string} outputPath - Output file path
+     * @param {WriteOptions} [options={}] - Write options (pretty print, etc.)
      */
     writeJson(data: unknown, outputPath: string, options: WriteOptions = {}): void {
         writeJsonUtil(data, outputPath, options);
     }
 
     /**
-     * Create a JSON file from data, validating against schema first
+     * Creates a JSON file from data, validating against a schema first.
+     * Only writes the file if validation passes.
+     *
+     * @param {unknown} data - Data to validate and write
+     * @param {string} schemaPath - Path to schema for validation
+     * @param {string} outputPath - Output file path
+     * @param {WriteOptions} [options={}] - Write options
+     * @returns {ValidationResult} Validation result (file only written if valid)
      */
     createValidatedJson(
         data: unknown,
@@ -190,14 +255,26 @@ export class JsonMaker {
     }
 
     /**
-     * Extract specific fields from JSON data
+     * Extracts specific fields from JSON data.
+     * Supports nested field access with dot notation.
+     *
+     * @template T - Type of extracted objects
+     * @param {unknown} data - Source data (object or array)
+     * @param {string[]} fields - Field names to extract (supports "a.b.c" notation)
+     * @returns {T[]} Array of objects containing only the specified fields
      */
     extractFields<T = unknown>(data: unknown, fields: string[]): T[] {
         return extractFieldsUtil<T>(data, fields);
     }
 
     /**
-     * Transform data using a mapping function
+     * Transforms data using a mapping function.
+     *
+     * @template TInput - Input item type
+     * @template TOutput - Output item type
+     * @param {TInput[]} data - Array of items to transform
+     * @param {Function} transformer - Transformation function (item, index) => newItem
+     * @returns {TOutput[]} Array of transformed items
      */
     transformData<TInput, TOutput>(
         data: TInput[],
@@ -207,21 +284,36 @@ export class JsonMaker {
     }
 
     /**
-     * Filter data based on a predicate
+     * Filters data based on a predicate function.
+     *
+     * @template T - Item type
+     * @param {T[]} data - Array to filter
+     * @param {Function} predicate - Filter function returning true to keep item
+     * @returns {T[]} Filtered array
      */
     filterData<T>(data: T[], predicate: (item: T) => boolean): T[] {
         return filterDataUtil(data, predicate);
     }
 
     /**
-     * Merge multiple JSON files into one
+     * Merges multiple JSON files into one.
+     * Combines arrays or merges objects.
+     *
+     * @param {string[]} filePaths - Array of input file paths
+     * @param {string} outputPath - Output file path for merged result
      */
     mergeJsonFiles(filePaths: string[], outputPath: string): void {
         mergeJsonFilesUtil(filePaths, outputPath);
     }
 
     /**
-     * Split a JSON array into multiple files
+     * Splits a JSON array file into multiple files based on a field value.
+     *
+     * @param {string} inputPath - Path to input JSON array file
+     * @param {string} outputDir - Directory for output files
+     * @param {string} splitBy - Field name to split by
+     * @param {Function} fileNamePattern - Function to generate filename from field value
+     * @returns {string[]} Array of created file paths
      */
     splitJsonFile(
         inputPath: string,
@@ -233,7 +325,11 @@ export class JsonMaker {
     }
 
     /**
-     * Generate an empty object that conforms to a schema
+     * Generates an empty template object conforming to a schema.
+     * Creates default values based on the schema's type definitions.
+     *
+     * @param {string} schemaPath - Path to schema file
+     * @returns {Record<string, unknown>|unknown[]} Template object or array
      */
     generateTemplate(schemaPath: string): Record<string, unknown> | unknown[] {
         const schema = this.loadSchema(schemaPath);
@@ -241,14 +337,21 @@ export class JsonMaker {
     }
 
     /**
-     * List all available schemas
+     * Lists all available schema files in the schema directory.
+     *
+     * @returns {string[]} Array of schema file paths
      */
     listSchemas(): string[] {
         return listSchemasUtil(this.schemaDir);
     }
 
     /**
-     * Format a validation result as a report string
+     * Formats a validation result as a report string.
+     *
+     * @param {ValidationResult} result - Validation result to format
+     * @param {ReportFormat} format - Output format (terminal, markdown, html)
+     * @param {ReportOptions} [options={}] - Formatting options
+     * @returns {string} Formatted report string
      */
     formatReport(
         result: ValidationResult,
@@ -259,7 +362,12 @@ export class JsonMaker {
     }
 
     /**
-     * Format multiple validation results as a summary report string
+     * Formats multiple validation results as a summary report.
+     *
+     * @param {Map<string, ValidationResult>} results - Map of file paths to results
+     * @param {ReportFormat} format - Output format (terminal, markdown, html)
+     * @param {ReportOptions} [options={}] - Formatting options
+     * @returns {string} Formatted summary string
      */
     formatSummary(
         results: Map<string, ValidationResult>,
@@ -270,7 +378,11 @@ export class JsonMaker {
     }
 
     /**
-     * Generate a validation report and write to file
+     * Generates a validation report and writes it to a file.
+     *
+     * @param {ValidationResult} result - Validation result
+     * @param {string} outputPath - Output file path
+     * @param {GenerateReportOptions} options - Report options including format
      */
     generateReport(
         result: ValidationResult,
@@ -281,7 +393,11 @@ export class JsonMaker {
     }
 
     /**
-     * Generate a summary report for multiple files and write to file
+     * Generates a summary report for multiple files and writes to a file.
+     *
+     * @param {Map<string, ValidationResult>} results - Map of file paths to results
+     * @param {string} outputPath - Output file path
+     * @param {GenerateReportOptions} options - Report options including format
      */
     generateSummaryReport(
         results: Map<string, ValidationResult>,
@@ -292,7 +408,13 @@ export class JsonMaker {
     }
 
     /**
-     * Generate reports in all formats (terminal, markdown, html)
+     * Generates reports in all formats (terminal, markdown, html).
+     *
+     * @param {ValidationResult} result - Validation result
+     * @param {string} outputDir - Output directory
+     * @param {string} baseName - Base name for output files
+     * @param {ReportOptions} [options={}] - Formatting options
+     * @returns {string[]} Array of created file paths
      */
     generateAllFormats(
         result: ValidationResult,
@@ -304,7 +426,13 @@ export class JsonMaker {
     }
 
     /**
-     * Generate summary reports in all formats
+     * Generates summary reports in all formats.
+     *
+     * @param {Map<string, ValidationResult>} results - Map of file paths to results
+     * @param {string} outputDir - Output directory
+     * @param {string} baseName - Base name for output files
+     * @param {ReportOptions} [options={}] - Formatting options
+     * @returns {string[]} Array of created file paths
      */
     generateAllFormatsSummary(
         results: Map<string, ValidationResult>,
@@ -316,14 +444,20 @@ export class JsonMaker {
     }
 
     /**
-     * Print a validation report to the console
+     * Prints a validation report to the console.
+     *
+     * @param {ValidationResult} result - Validation result to print
+     * @param {ReportOptions} [options={}] - Formatting options
      */
     printReport(result: ValidationResult, options: ReportOptions = {}): void {
         printReportUtil(result, options);
     }
 
     /**
-     * Print a summary report to the console
+     * Prints a summary report to the console.
+     *
+     * @param {Map<string, ValidationResult>} results - Map of file paths to results
+     * @param {ReportOptions} [options={}] - Formatting options
      */
     printSummary(
         results: Map<string, ValidationResult>,
@@ -333,7 +467,11 @@ export class JsonMaker {
     }
 
     /**
-     * Generate TypeScript interface from a schema
+     * Generates TypeScript interface code from a schema.
+     *
+     * @param {string} schemaPath - Path to schema file
+     * @param {GenerateOptions} [options={}] - Generation options
+     * @returns {string} TypeScript interface code
      */
     generateTypeScript(schemaPath: string, options: GenerateOptions = {}): string {
         const schema = this.loadSchema(schemaPath);
@@ -341,7 +479,11 @@ export class JsonMaker {
     }
 
     /**
-     * Generate JavaScript ES5 class from a schema
+     * Generates JavaScript ES5 class code from a schema.
+     *
+     * @param {string} schemaPath - Path to schema file
+     * @param {GenerateOptions} [options={}] - Generation options
+     * @returns {string} JavaScript ES5 class code
      */
     generateJavaScript(schemaPath: string, options: GenerateOptions = {}): string {
         const schema = this.loadSchema(schemaPath);
@@ -349,7 +491,11 @@ export class JsonMaker {
     }
 
     /**
-     * Generate TypeScript interface and write to file
+     * Generates TypeScript interface and writes to a file.
+     *
+     * @param {string} schemaPath - Path to schema file
+     * @param {string} outputPath - Output file path
+     * @param {GenerateOptions} [options={}] - Generation options
      */
     generateTypeScriptFile(
         schemaPath: string,
@@ -361,7 +507,11 @@ export class JsonMaker {
     }
 
     /**
-     * Generate JavaScript ES5 class and write to file
+     * Generates JavaScript ES5 class and writes to a file.
+     *
+     * @param {string} schemaPath - Path to schema file
+     * @param {string} outputPath - Output file path
+     * @param {GenerateOptions} [options={}] - Generation options
      */
     generateJavaScriptFile(
         schemaPath: string,
@@ -373,7 +523,13 @@ export class JsonMaker {
     }
 
     /**
-     * Generate both TypeScript and JavaScript files from a schema
+     * Generates both TypeScript and JavaScript files from a schema.
+     *
+     * @param {string} schemaPath - Path to schema file
+     * @param {string} outputDir - Output directory
+     * @param {string} baseName - Base name for output files
+     * @param {GenerateOptions} [options={}] - Generation options
+     * @returns {{ tsPath: string; jsPath: string }} Paths to created files
      */
     generateTypes(
         schemaPath: string,
@@ -386,26 +542,68 @@ export class JsonMaker {
     }
 }
 
-// Export a default instance
+/**
+ * Default JsonMaker instance for convenience.
+ * Uses "./json-schema" as the default schema directory.
+ * @const {JsonMaker}
+ */
 export const jsonMaker = new JsonMaker();
 
-// Export utility functions for convenience
+/**
+ * Validates data against a JSON Schema.
+ * Convenience function using the default jsonMaker instance.
+ *
+ * @param {unknown} data - Data to validate
+ * @param {string} schemaPath - Path to schema file
+ * @returns {ValidationResult} Validation result
+ */
 export function validateJson(data: unknown, schemaPath: string): ValidationResult {
     return jsonMaker.validate(data, schemaPath);
 }
 
+/**
+ * Validates a JSON file against a schema.
+ * Convenience function using the default jsonMaker instance.
+ *
+ * @param {string} filePath - Path to JSON file
+ * @param {string} schemaPath - Path to schema file
+ * @returns {ValidationResult} Validation result
+ */
 export function validateJsonFile(filePath: string, schemaPath: string): ValidationResult {
     return jsonMaker.validateFile(filePath, schemaPath);
 }
 
+/**
+ * Writes data to a JSON file.
+ * Convenience function using the default jsonMaker instance.
+ *
+ * @param {unknown} data - Data to write
+ * @param {string} outputPath - Output file path
+ * @param {WriteOptions} [options] - Write options
+ */
 export function writeJson(data: unknown, outputPath: string, options?: WriteOptions): void {
     jsonMaker.writeJson(data, outputPath, options);
 }
 
+/**
+ * Reads and parses a JSON file.
+ * Convenience function using the default jsonMaker instance.
+ *
+ * @template T - Expected return type
+ * @param {string} filePath - Path to JSON file
+ * @returns {T} Parsed JSON data
+ */
 export function readJson<T = unknown>(filePath: string): T {
     return jsonMaker.readData({ type: "file", path: filePath }) as T;
 }
 
+/**
+ * Gets metadata information about a schema.
+ * Convenience function using the default jsonMaker instance.
+ *
+ * @param {string} schemaPath - Path to schema file
+ * @returns {SchemaInfo} Schema metadata
+ */
 export function getSchemaInfo(schemaPath: string): SchemaInfo {
     return jsonMaker.getSchemaInfo(schemaPath);
 }

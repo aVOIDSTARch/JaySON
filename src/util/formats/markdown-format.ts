@@ -1,9 +1,21 @@
 /**
- * Markdown Format - Markdown formatting for reports
+ * @fileoverview Markdown Format - Markdown formatting for validation reports
+ * @module util/formats/markdown-format
+ * @description Provides Markdown formatting of validation results, suitable for
+ * documentation, GitHub README files, and other Markdown-compatible outputs.
+ * Uses tables and headers for structured presentation.
  */
 
 import type { ValidationResult, ValidationError } from "../json-types.js";
 
+/**
+ * Options for formatting reports.
+ * @interface ReportOptions
+ * @property {string} [title] - Title to display in the report header
+ * @property {string} [filePath] - Path of the validated file to display
+ * @property {string} [schemaPath] - Path of the schema used for validation
+ * @property {boolean} [timestamp] - Whether to include a timestamp (default: true)
+ */
 export interface ReportOptions {
     title?: string;
     filePath?: string;
@@ -12,7 +24,16 @@ export interface ReportOptions {
 }
 
 /**
- * Format a validation result as Markdown
+ * Formats a validation result as Markdown.
+ * Creates a structured document with headers, tables, and proper Markdown syntax.
+ *
+ * @param {ValidationResult} result - The validation result to format
+ * @param {ReportOptions} [options={}] - Formatting options
+ * @returns {string} Formatted Markdown document
+ *
+ * @example
+ * const result = { valid: false, errors: [{ path: "email", message: "Invalid format" }] };
+ * const md = formatReport(result, { title: "Email Validation", timestamp: false });
  */
 export function formatReport(result: ValidationResult, options: ReportOptions = {}): string {
     const lines: string[] = [];
@@ -63,7 +84,12 @@ export function formatReport(result: ValidationResult, options: ReportOptions = 
 }
 
 /**
- * Format a single validation error as Markdown
+ * Formats a single validation error as Markdown.
+ *
+ * @param {ValidationError} error - The error to format
+ * @param {number} index - Error number for display
+ * @returns {string} Formatted Markdown for the error
+ * @private
  */
 function formatError(error: ValidationError, index: number): string {
     const lines: string[] = [];
@@ -82,7 +108,11 @@ function formatError(error: ValidationError, index: number): string {
 }
 
 /**
- * Format a value for display
+ * Formats a value for display, truncating long values.
+ *
+ * @param {unknown} value - Value to format
+ * @returns {string} String representation of the value
+ * @private
  */
 function formatValue(value: unknown): string {
     if (value === null) return "null";
@@ -100,7 +130,19 @@ function formatValue(value: unknown): string {
 }
 
 /**
- * Format a summary of multiple validation results as Markdown
+ * Formats a summary of multiple validation results as Markdown.
+ * Includes aggregate statistics, a results table, and detailed error listings.
+ *
+ * @param {Map<string, ValidationResult>} results - Map of file paths to validation results
+ * @param {ReportOptions} [options={}] - Formatting options
+ * @returns {string} Formatted Markdown summary document
+ *
+ * @example
+ * const results = new Map([
+ *   ["./config.json", { valid: true, errors: [] }],
+ *   ["./data.json", { valid: false, errors: [{ path: "id", message: "Required" }] }]
+ * ]);
+ * const md = formatSummary(results, { title: "Config Validation Report" });
  */
 export function formatSummary(
     results: Map<string, ValidationResult>,

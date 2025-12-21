@@ -17,6 +17,6 @@ Requirements
 14. Comprehensive command line interface that has a great --help output and the commands should be aliased to jayson not index
 15. Implement the JSDocs system and makes sure all code is properly commented.
 16. Create the documentation in the docs folder
-17. implement or import the simplest web server in folder to serve both the documentation, html reports, and the application web interface
-18. import a web scraper that will take a api docs page and create the correct json objects and html/css docs pages
-19. everything will use localhost: 3333 for now
+17.  will have an api. implemented in different project thus will need to have the code to support that interface easily bu NOT actually provide the web API endpoints
+18. another project will use this module for a web scraper that will take a api docs page and create the correct json objects and html/css docs pages
+

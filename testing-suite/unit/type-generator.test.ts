@@ -2,7 +2,7 @@
  * Unit Tests for type-generator.ts
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 import {
@@ -20,20 +20,7 @@ describe("type-generator", () => {
         ensureDir(TEMP_DIR);
     });
 
-    afterEach(() => {
-        // Clean up temp files
-        if (fs.existsSync(TEMP_DIR)) {
-            const files = fs.readdirSync(TEMP_DIR);
-            for (const file of files) {
-                const filePath = path.join(TEMP_DIR, file);
-                if (fs.statSync(filePath).isDirectory()) {
-                    fs.rmSync(filePath, { recursive: true });
-                } else {
-                    fs.unlinkSync(filePath);
-                }
-            }
-        }
-    });
+    // No afterEach cleanup - global setup.ts handles temp directory
 
     describe("generateTypeScript()", () => {
         it("should generate TypeScript interface from simple schema", () => {

@@ -1,5 +1,8 @@
 /**
- * Schema Loader - Load and cache JSON schemas
+ * @fileoverview Schema Loader - Load and cache JSON schemas
+ * @module util/schema-loader
+ * @description Provides functionality to load JSON Schema files from the filesystem
+ * with caching support, extract schema metadata, and list available schemas in a directory.
  */
 
 import * as fs from "fs";
@@ -7,7 +10,21 @@ import * as path from "path";
 import type { JsonSchema, SchemaInfo } from "./json-types.js";
 
 /**
- * Load a JSON schema from file with caching
+ * Loads a JSON Schema from a file with caching.
+ * Resolves relative paths against the provided schema directory.
+ *
+ * @param {string} schemaPath - Path to the schema file (absolute or relative)
+ * @param {string} schemaDir - Base directory for resolving relative paths
+ * @param {Map<string, JsonSchema>} cache - Cache map for storing loaded schemas
+ * @returns {JsonSchema} The loaded and parsed JSON Schema
+ * @throws {Error} If the schema file is not found
+ *
+ * @example
+ * const cache = new Map<string, JsonSchema>();
+ * const schema = loadSchema("user.schema.json", "./schemas", cache);
+ *
+ * // Second call returns cached version
+ * const sameSchema = loadSchema("user.schema.json", "./schemas", cache);
  */
 export function loadSchema(
     schemaPath: string,
@@ -33,7 +50,24 @@ export function loadSchema(
 }
 
 /**
- * Get information about a schema
+ * Extracts metadata information from a JSON Schema.
+ * Provides a summary of the schema's structure including title, description,
+ * root type, required fields, and property names.
+ *
+ * @param {JsonSchema} schema - The JSON Schema to analyze
+ * @returns {SchemaInfo} Object containing schema metadata
+ *
+ * @example
+ * const schema = {
+ *   title: "User",
+ *   description: "A user account",
+ *   type: "object",
+ *   properties: { id: {}, name: {}, email: {} },
+ *   required: ["id", "name"]
+ * };
+ *
+ * const info = getSchemaInfo(schema);
+ * // Returns: { title: "User", description: "A user account", ... }
  */
 export function getSchemaInfo(schema: JsonSchema): SchemaInfo {
     let properties: string[] = [];
@@ -60,7 +94,15 @@ export function getSchemaInfo(schema: JsonSchema): SchemaInfo {
 }
 
 /**
- * List all available schemas in a directory
+ * Lists all JSON schema files in a directory.
+ * Returns full paths to all .json files in the specified directory.
+ *
+ * @param {string} schemaDir - Directory path to search for schemas
+ * @returns {string[]} Array of full paths to schema files
+ *
+ * @example
+ * const schemas = listSchemas("./schemas");
+ * // Returns: ["./schemas/user.json", "./schemas/product.json", ...]
  */
 export function listSchemas(schemaDir: string): string[] {
     if (!fs.existsSync(schemaDir)) {

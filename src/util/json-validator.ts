@@ -1,5 +1,9 @@
 /**
- * JSON Validator - Validate data against JSON schemas
+ * @fileoverview JSON Validator - Validate data against JSON schemas
+ * @module util/json-validator
+ * @description Provides functions to validate JavaScript/JSON data against
+ * JSON Schema specifications. Supports type validation, constraints, enums,
+ * patterns, and schema combinators (oneOf, anyOf, allOf).
  */
 
 import type {
@@ -10,7 +14,20 @@ import type {
 } from "./json-types.js";
 
 /**
- * Get the type of a value for validation
+ * Determines the JSON Schema type of a JavaScript value.
+ * Maps JavaScript types to JSON Schema type names.
+ *
+ * @param {unknown} value - The value to get the type of
+ * @returns {string} The JSON Schema type name ('null', 'array', 'integer', 'number', 'string', 'boolean', 'object')
+ *
+ * @example
+ * getValueType(null);        // returns "null"
+ * getValueType([1, 2, 3]);   // returns "array"
+ * getValueType(42);          // returns "integer"
+ * getValueType(3.14);        // returns "number"
+ * getValueType("hello");     // returns "string"
+ * getValueType(true);        // returns "boolean"
+ * getValueType({});          // returns "object"
  */
 export function getValueType(value: unknown): string {
     if (value === null) return "null";
@@ -20,7 +37,32 @@ export function getValueType(value: unknown): string {
 }
 
 /**
- * Validate a value against a schema
+ * Validates a value against a JSON Schema property definition.
+ * This is the core recursive validation function that handles all schema constraints.
+ *
+ * @param {unknown} value - The value to validate
+ * @param {JsonSchemaProperty | JsonSchema} schema - The schema to validate against
+ * @param {string} path - The current JSON path (for error reporting)
+ * @param {ValidationError[]} errors - Array to collect validation errors
+ * @returns {void} Errors are pushed to the errors array parameter
+ *
+ * @example
+ * const errors: ValidationError[] = [];
+ * const schema = { type: "string", minLength: 3 };
+ * validateValue("hi", schema, "name", errors);
+ * // errors will contain: [{ path: "name", message: "String length must be >= 3", value: "hi" }]
+ *
+ * @description
+ * Validates the following constraints:
+ * - Type matching (string, number, integer, boolean, null, array, object)
+ * - Enum values
+ * - String patterns (regex)
+ * - Number ranges (minimum, maximum)
+ * - String length (minLength, maxLength)
+ * - Required properties
+ * - Nested object properties
+ * - Array item schemas
+ * - Schema combinators (oneOf, anyOf)
  */
 export function validateValue(
     value: unknown,
@@ -28,13 +70,12 @@ export function validateValue(
     path: string,
     errors: ValidationError[]
 ): void {
-    // Handle $ref
+    // Handle $ref - skip reference validation (not yet implemented)
     if (schema.$ref) {
-        // For now, skip $ref validation
         return;
     }
 
-    // Handle oneOf
+    // Handle oneOf - exactly one schema must match
     if (schema.oneOf) {
         const validCount = schema.oneOf.filter((subSchema) => {
             const subErrors: ValidationError[] = [];
@@ -52,7 +93,7 @@ export function validateValue(
         return;
     }
 
-    // Handle anyOf
+    // Handle anyOf - at least one schema must match
     if (schema.anyOf) {
         const isValid = schema.anyOf.some((subSchema) => {
             const subErrors: ValidationError[] = [];
@@ -148,7 +189,7 @@ export function validateValue(
     if (schemaType === "object" && typeof value === "object" && value !== null) {
         const obj = value as Record<string, unknown>;
 
-        // Required fields
+        // Required fields validation
         if (schema.required) {
             for (const field of schema.required) {
                 if (!(field in obj)) {
@@ -160,7 +201,7 @@ export function validateValue(
             }
         }
 
-        // Property validation
+        // Property validation - recursively validate each property
         if (schema.properties) {
             for (const [key, propSchema] of Object.entries(schema.properties)) {
                 if (key in obj) {
@@ -175,7 +216,7 @@ export function validateValue(
         }
     }
 
-    // Array validation
+    // Array validation - validate each item against the items schema
     if (schemaType === "array" && Array.isArray(value)) {
         if (schema.items) {
             value.forEach((item, index) => {
@@ -191,7 +232,36 @@ export function validateValue(
 }
 
 /**
- * Validate data against a schema
+ * Validates data against a JSON Schema.
+ * This is the main entry point for schema validation.
+ *
+ * @param {unknown} data - The data to validate (can be any JSON-compatible value)
+ * @param {JsonSchema} schema - The JSON Schema to validate against
+ * @returns {ValidationResult} Object containing validation status and any errors
+ *
+ * @example
+ * const schema: JsonSchema = {
+ *   type: "object",
+ *   properties: {
+ *     name: { type: "string", minLength: 1 },
+ *     age: { type: "integer", minimum: 0 }
+ *   },
+ *   required: ["name"]
+ * };
+ *
+ * const validData = { name: "John", age: 30 };
+ * const result1 = validate(validData, schema);
+ * // result1 = { valid: true, errors: [] }
+ *
+ * const invalidData = { age: -5 };
+ * const result2 = validate(invalidData, schema);
+ * // result2 = {
+ * //   valid: false,
+ * //   errors: [
+ * //     { path: "name", message: "Required field missing" },
+ * //     { path: "age", message: "Value must be >= 0", value: -5 }
+ * //   ]
+ * // }
  */
 export function validate(data: unknown, schema: JsonSchema): ValidationResult {
     const errors: ValidationError[] = [];

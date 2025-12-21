@@ -1,5 +1,9 @@
 /**
- * Standard Detection - Identify JSON Schema standards in schemas
+ * @fileoverview Standard Detection - Identify JSON Schema standards in schemas
+ * @module util/standard-detection
+ * @description Provides functionality to detect which JSON Schema standard/draft
+ * is used in a schema by analyzing the $schema property. Supports detection of
+ * official JSON Schema drafts (04, 06, 07, 2019-09, 2020-12) and custom schemas.
  */
 
 import * as fs from "fs";
@@ -12,7 +16,21 @@ import {
 } from "./schema-constants.js";
 
 /**
- * Detect the JSON Schema standard used in a schema object or file
+ * Detects the JSON Schema standard used in a schema object or file.
+ * Analyzes the $schema property to determine which draft version is used.
+ *
+ * @param {unknown|string} schemaOrPath - Either a schema object or path to a schema file
+ * @returns {DetectedStandard} Detection result with version, URL, and description
+ *
+ * @example
+ * // Detect from a schema object
+ * const result = detectStandard({ $schema: "https://json-schema.org/draft/2020-12/schema" });
+ * // result.version === "2020-12", result.isOfficial === true
+ *
+ * @example
+ * // Detect from a file path
+ * const result = detectStandard("./my-schema.json");
+ * console.log(result.description);  // "JSON Schema 2020-12"
  */
 export function detectStandard(schemaOrPath: unknown | string): DetectedStandard {
     let schema: Record<string, unknown>;
@@ -81,7 +99,20 @@ export function detectStandard(schemaOrPath: unknown | string): DetectedStandard
 }
 
 /**
- * Get list of available JSON Schema standards
+ * Gets a list of all available JSON Schema standards with download status.
+ * Shows which meta-schemas have been downloaded to the local registry.
+ *
+ * @param {Record<string, SchemaMetadata>} registry - Map of schema names to metadata
+ * @returns {Array<Object>} Array of standards with version, URL, and download status
+ * @returns {JsonSchemaVersion} returns[].version - The standard version identifier
+ * @returns {string} returns[].url - Official $schema URL for this version
+ * @returns {boolean} returns[].downloaded - Whether meta-schema is in local registry
+ *
+ * @example
+ * const standards = getAvailableStandards(registry.schemas);
+ * standards.forEach(s => {
+ *   console.log(`${s.version}: ${s.downloaded ? "downloaded" : "not downloaded"}`);
+ * });
  */
 export function getAvailableStandards(
     registry: Record<string, SchemaMetadata>

@@ -1,9 +1,21 @@
 /**
- * HTML Format - HTML with inline CSS formatting for reports
+ * @fileoverview HTML Format - HTML with inline CSS formatting for validation reports
+ * @module util/formats/html-format
+ * @description Provides HTML formatting of validation results with inline CSS styles.
+ * Creates self-contained HTML documents suitable for viewing in any browser,
+ * email embedding, or archiving. Uses a modern, responsive design.
  */
 
 import type { ValidationResult, ValidationError } from "../json-types.js";
 
+/**
+ * Options for formatting reports.
+ * @interface ReportOptions
+ * @property {string} [title] - Title to display in the report header and page title
+ * @property {string} [filePath] - Path of the validated file to display
+ * @property {string} [schemaPath] - Path of the schema used for validation
+ * @property {boolean} [timestamp] - Whether to include a timestamp (default: true)
+ */
 export interface ReportOptions {
     title?: string;
     filePath?: string;
@@ -12,7 +24,17 @@ export interface ReportOptions {
 }
 
 /**
- * Format a validation result as HTML with inline CSS
+ * Formats a validation result as a complete HTML document with inline CSS.
+ * Creates a visually styled, self-contained HTML page with color-coded status.
+ *
+ * @param {ValidationResult} result - The validation result to format
+ * @param {ReportOptions} [options={}] - Formatting options
+ * @returns {string} Complete HTML document as a string
+ *
+ * @example
+ * const result = { valid: true, errors: [] };
+ * const html = formatReport(result, { title: "Schema Validation", filePath: "./data.json" });
+ * fs.writeFileSync("report.html", html);
  */
 export function formatReport(result: ValidationResult, options: ReportOptions = {}): string {
     const { title = "Validation Report", filePath, schemaPath, timestamp = true } = options;
@@ -79,7 +101,12 @@ export function formatReport(result: ValidationResult, options: ReportOptions = 
 }
 
 /**
- * Format a single validation error as HTML
+ * Formats a single validation error as HTML with styled error card.
+ *
+ * @param {ValidationError} error - The error to format
+ * @param {number} index - Error number for display
+ * @returns {string} HTML fragment for the error
+ * @private
  */
 function formatError(error: ValidationError, index: number): string {
     let html = `        <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin-bottom: 12px; border-radius: 0 6px 6px 0;">
@@ -101,7 +128,11 @@ function formatError(error: ValidationError, index: number): string {
 }
 
 /**
- * Format a value for display
+ * Formats a value for display, truncating long values.
+ *
+ * @param {unknown} value - Value to format
+ * @returns {string} String representation of the value
+ * @private
  */
 function formatValue(value: unknown): string {
     if (value === null) return "null";
@@ -119,7 +150,11 @@ function formatValue(value: unknown): string {
 }
 
 /**
- * Escape HTML special characters
+ * Escapes HTML special characters to prevent XSS and display issues.
+ *
+ * @param {string} text - Text to escape
+ * @returns {string} HTML-safe text with entities escaped
+ * @private
  */
 function escapeHtml(text: string): string {
     return text
@@ -131,7 +166,18 @@ function escapeHtml(text: string): string {
 }
 
 /**
- * Format a summary of multiple validation results as HTML
+ * Formats a summary of multiple validation results as a complete HTML document.
+ * Creates a dashboard-style report with statistics grid, results table, and
+ * detailed error listings for failed files.
+ *
+ * @param {Map<string, ValidationResult>} results - Map of file paths to validation results
+ * @param {ReportOptions} [options={}] - Formatting options
+ * @returns {string} Complete HTML document as a string
+ *
+ * @example
+ * const results = validateFiles(["./a.json", "./b.json"], schema);
+ * const html = formatSummary(results, { title: "Batch Validation Report" });
+ * fs.writeFileSync("summary.html", html);
  */
 export function formatSummary(
     results: Map<string, ValidationResult>,

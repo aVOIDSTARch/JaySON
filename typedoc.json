@@ -1,0 +1,25 @@
+{
+    "$schema": "https://typedoc.org/schema.json",
+    "entryPoints": ["./src/index.ts"],
+    "out": "./docs",
+    "name": "JaySON",
+    "readme": "./README.md",
+    "includeVersion": true,
+    "excludePrivate": true,
+    "excludeProtected": false,
+    "excludeInternal": true,
+    "navigationLinks": {
+        "GitHub": "https://github.com/aVOIDSTARch/JaySON"
+    },
+    "plugin": [],
+    "theme": "default",
+    "categorizeByGroup": true,
+    "categoryOrder": ["*"],
+    "sort": ["source-order"],
+    "visibilityFilters": {
+        "protected": false,
+        "private": false,
+        "inherited": true,
+        "external": false
+    }
+}

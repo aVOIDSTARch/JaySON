@@ -1,19 +1,43 @@
 /**
- * Type Generator - Generate TypeScript interfaces and JavaScript classes from JSON schemas
+ * @fileoverview Type Generator - Generate TypeScript interfaces and JavaScript classes from JSON schemas
+ * @module util/type-generator
+ * @description Provides functionality to generate strongly-typed TypeScript interfaces
+ * and JavaScript ES5 classes from JSON Schema definitions. Generated code includes
+ * validation methods, serialization helpers, and proper type annotations.
  */
 
 import * as fs from "fs";
 import * as path from "path";
 import type { JsonSchema, JsonSchemaProperty } from "./json-types.js";
 
+/**
+ * Options for type generation.
+ * @interface GenerateOptions
+ */
 export interface GenerateOptions {
+    /** Custom name for the exported type/class (defaults to schema title) */
     exportName?: string;
+    /** Whether to include JSDoc comments from schema descriptions */
     includeDescriptions?: boolean;
+    /** Number of spaces for indentation (default: 4) */
     indentSize?: number;
 }
 
 /**
- * Convert a schema property type to TypeScript type
+ * Converts a JSON Schema property type to its TypeScript equivalent.
+ *
+ * @param {JsonSchemaProperty} prop - The schema property to convert
+ * @returns {string} The TypeScript type string
+ * @private
+ *
+ * @description Handles:
+ * - Enum types (converted to union of literal types)
+ * - $ref references (converted to PascalCase type name)
+ * - oneOf/anyOf (converted to union types)
+ * - allOf (converted to intersection types)
+ * - Primitive types (string, number, boolean, null)
+ * - Array types (with item type inference)
+ * - Object types (as Record or named interface)
  */
 function schemaTypeToTs(prop: JsonSchemaProperty): string {
     if (prop.enum) {
@@ -68,7 +92,15 @@ function schemaTypeToTs(prop: JsonSchemaProperty): string {
 }
 
 /**
- * Convert a string to PascalCase
+ * Converts a string to PascalCase.
+ *
+ * @param {string} str - The string to convert
+ * @returns {string} The PascalCase string
+ * @private
+ *
+ * @example
+ * toPascalCase("user_profile");  // returns "UserProfile"
+ * toPascalCase("my-component");  // returns "MyComponent"
  */
 function toPascalCase(str: string): string {
     return str
@@ -77,7 +109,15 @@ function toPascalCase(str: string): string {
 }
 
 /**
- * Convert a string to camelCase
+ * Converts a string to camelCase.
+ *
+ * @param {string} str - The string to convert
+ * @returns {string} The camelCase string
+ * @private
+ *
+ * @example
+ * toCamelCase("user_profile");  // returns "userProfile"
+ * toCamelCase("MyComponent");   // returns "myComponent"
  */
 function toCamelCase(str: string): string {
     return str
@@ -86,7 +126,29 @@ function toCamelCase(str: string): string {
 }
 
 /**
- * Generate TypeScript interface from a JSON schema
+ * Generates a TypeScript interface definition from a JSON Schema.
+ * Creates properly typed interfaces with optional properties, nested types,
+ * and JSDoc comments from schema descriptions.
+ *
+ * @param {JsonSchema} schema - The JSON Schema to generate from
+ * @param {GenerateOptions} [options={}] - Generation options
+ * @returns {string} The generated TypeScript code
+ *
+ * @example
+ * const schema: JsonSchema = {
+ *   title: "User",
+ *   type: "object",
+ *   properties: {
+ *     id: { type: "integer", description: "Unique identifier" },
+ *     name: { type: "string" },
+ *     role: { type: "string", enum: ["admin", "user"] }
+ *   },
+ *   required: ["id", "name"]
+ * };
+ *
+ * const tsCode = generateTypeScript(schema);
+ * // Generates an interface like:
+ * // export interface User { id: number; name: string; role?: "admin" | "user"; }
  */
 export function generateTypeScript(
     schema: JsonSchema,
@@ -141,7 +203,14 @@ export function generateTypeScript(
 }
 
 /**
- * Generate a single interface
+ * Generates a single TypeScript interface.
+ *
+ * @param {JsonSchema | JsonSchemaProperty} schema - The schema to generate from
+ * @param {string} name - The interface name
+ * @param {string} indent - The indentation string
+ * @param {boolean} includeDescriptions - Whether to include JSDoc comments
+ * @returns {string[]} Array of code lines
+ * @private
  */
 function generateInterface(
     schema: JsonSchema | JsonSchemaProperty,
@@ -185,7 +254,16 @@ function generateInterface(
 }
 
 /**
- * Generate TypeScript interface and write to file
+ * Generates a TypeScript interface and writes it to a file.
+ * Creates parent directories if they don't exist.
+ *
+ * @param {JsonSchema} schema - The JSON Schema to generate from
+ * @param {string} outputPath - The file path to write to
+ * @param {GenerateOptions} [options={}] - Generation options
+ * @returns {void}
+ *
+ * @example
+ * generateTypeScriptFile(userSchema, "./types/User.ts");
  */
 export function generateTypeScriptFile(
     schema: JsonSchema,
@@ -198,7 +276,11 @@ export function generateTypeScriptFile(
 }
 
 /**
- * Get default value for a type (for JS class)
+ * Gets the default value for a property type (for JavaScript class generation).
+ *
+ * @param {JsonSchemaProperty} prop - The property schema
+ * @returns {string} JavaScript code for the default value
+ * @private
  */
 function getDefaultValue(prop: JsonSchemaProperty): string {
     if (prop.default !== undefined) {
@@ -231,7 +313,30 @@ function getDefaultValue(prop: JsonSchemaProperty): string {
 }
 
 /**
- * Generate JavaScript ES5 class from a JSON schema
+ * Generates a JavaScript ES5 class from a JSON Schema.
+ * Creates a class with constructor, validation, serialization, and deserialization methods.
+ *
+ * @param {JsonSchema} schema - The JSON Schema to generate from
+ * @param {GenerateOptions} [options={}] - Generation options
+ * @returns {string} The generated JavaScript code
+ *
+ * @example
+ * const schema: JsonSchema = {
+ *   title: "User",
+ *   type: "object",
+ *   properties: {
+ *     id: { type: "integer" },
+ *     name: { type: "string", minLength: 1 }
+ *   },
+ *   required: ["id", "name"]
+ * };
+ *
+ * const jsCode = generateJavaScript(schema);
+ * // Generates a class with:
+ * // - constructor(data)
+ * // - validate() method
+ * // - toJSON() method
+ * // - static fromJSON(json) method
  */
 export function generateJavaScript(
     schema: JsonSchema,
@@ -278,7 +383,14 @@ export function generateJavaScript(
 }
 
 /**
- * Generate a single class
+ * Generates a single JavaScript class.
+ *
+ * @param {JsonSchema | JsonSchemaProperty} schema - The schema to generate from
+ * @param {string} name - The class name
+ * @param {string} indent - The indentation string
+ * @param {boolean} includeDescriptions - Whether to include JSDoc comments
+ * @returns {string[]} Array of code lines
+ * @private
  */
 function generateClass(
     schema: JsonSchema | JsonSchemaProperty,
@@ -398,7 +510,16 @@ function generateClass(
 }
 
 /**
- * Generate JavaScript class and write to file
+ * Generates a JavaScript class and writes it to a file.
+ * Creates parent directories if they don't exist.
+ *
+ * @param {JsonSchema} schema - The JSON Schema to generate from
+ * @param {string} outputPath - The file path to write to
+ * @param {GenerateOptions} [options={}] - Generation options
+ * @returns {void}
+ *
+ * @example
+ * generateJavaScriptFile(userSchema, "./classes/User.js");
  */
 export function generateJavaScriptFile(
     schema: JsonSchema,
@@ -411,7 +532,18 @@ export function generateJavaScriptFile(
 }
 
 /**
- * Generate both TypeScript and JavaScript files
+ * Generates both TypeScript interface and JavaScript class files.
+ * Creates both files in the specified output directory.
+ *
+ * @param {JsonSchema} schema - The JSON Schema to generate from
+ * @param {string} outputDir - Directory to write the files
+ * @param {string} baseName - Base name for the files (without extension)
+ * @param {GenerateOptions} [options={}] - Generation options
+ * @returns {{ tsPath: string, jsPath: string }} Paths to the created files
+ *
+ * @example
+ * const { tsPath, jsPath } = generateBoth(userSchema, "./output", "User");
+ * // Creates: ./output/User.ts and ./output/User.js
  */
 export function generateBoth(
     schema: JsonSchema,
@@ -431,7 +563,11 @@ export function generateBoth(
 }
 
 /**
- * Ensure a directory exists
+ * Ensures a directory exists, creating it recursively if necessary.
+ *
+ * @param {string} dir - Directory path to ensure exists
+ * @returns {void}
+ * @private
  */
 function ensureDir(dir: string): void {
     if (dir && !fs.existsSync(dir)) {

@@ -1,5 +1,9 @@
 /**
- * Schema Downloader - Download schemas from various sources
+ * @fileoverview Schema Downloader - Download schemas from various sources
+ * @module util/schema-downloader
+ * @description Provides functionality to download JSON schemas from multiple sources
+ * including official JSON Schema meta-schemas, SchemaStore catalog, GitHub repositories,
+ * and arbitrary URLs. Includes version tracking and update checking capabilities.
  */
 
 import * as fs from "fs";
@@ -17,7 +21,20 @@ import {
 import type { SchemaRegistry } from "./schema-registry.js";
 
 /**
- * Download a JSON Schema meta-schema by version
+ * Downloads a JSON Schema meta-schema by version.
+ * Fetches the official meta-schema from json-schema.org and saves it locally.
+ *
+ * @param {JsonSchemaVersion} version - The JSON Schema version to download
+ * @param {string} standardsDir - Directory to save the downloaded schema
+ * @param {SchemaRegistry} registry - Registry object to update with download info
+ * @param {Function} saveRegistryFn - Callback function to persist registry changes
+ * @returns {Promise<DownloadResult>} Result indicating success/failure with path or error
+ *
+ * @example
+ * const result = await downloadMetaSchema("2020-12", "./schemas", registry, saveRegistry);
+ * if (result.success) {
+ *   console.log(`Schema saved to: ${result.path}`);
+ * }
  */
 export async function downloadMetaSchema(
     version: JsonSchemaVersion,
@@ -53,7 +70,17 @@ export async function downloadMetaSchema(
 }
 
 /**
- * Download all JSON Schema meta-schemas
+ * Downloads all official JSON Schema meta-schemas.
+ * Iterates through all known versions and downloads each one.
+ *
+ * @param {string} standardsDir - Directory to save the downloaded schemas
+ * @param {SchemaRegistry} registry - Registry object to update with download info
+ * @param {Function} saveRegistryFn - Callback function to persist registry changes
+ * @returns {Promise<UpdateResult>} Summary of updated, failed, and skipped schemas
+ *
+ * @example
+ * const result = await downloadAllMetaSchemas("./schemas", registry, saveRegistry);
+ * console.log(`Downloaded: ${result.updated.length}, Failed: ${result.failed.length}`);
  */
 export async function downloadAllMetaSchemas(
     standardsDir: string,
@@ -78,7 +105,26 @@ export async function downloadAllMetaSchemas(
 }
 
 /**
- * Download a schema from a URL
+ * Downloads a JSON schema from an arbitrary URL.
+ * Validates the downloaded content is valid JSON before saving.
+ *
+ * @param {string} name - Display name for the schema
+ * @param {string} url - URL to download the schema from
+ * @param {string} [version="latest"] - Version string for tracking purposes
+ * @param {string} standardsDir - Directory to save the downloaded schema
+ * @param {SchemaRegistry} registry - Registry object to update with download info
+ * @param {Function} saveRegistryFn - Callback function to persist registry changes
+ * @returns {Promise<DownloadResult>} Result indicating success/failure with path or error
+ *
+ * @example
+ * const result = await downloadSchema(
+ *   "package.json",
+ *   "https://json.schemastore.org/package.json",
+ *   "latest",
+ *   "./schemas",
+ *   registry,
+ *   saveRegistry
+ * );
  */
 export async function downloadSchema(
     name: string,
@@ -122,7 +168,23 @@ export async function downloadSchema(
 }
 
 /**
- * Download schemas from SchemaStore catalog
+ * Downloads schemas from the SchemaStore catalog by name.
+ * Fetches the catalog, finds matching schemas, and downloads them.
+ *
+ * @param {string[]} schemaNames - Array of schema names to download (case-insensitive)
+ * @param {string} standardsDir - Directory to save the downloaded schemas
+ * @param {SchemaRegistry} registry - Registry object to update with download info
+ * @param {Function} saveRegistryFn - Callback function to persist registry changes
+ * @returns {Promise<UpdateResult>} Summary of updated, failed, and skipped schemas
+ * @see {@link https://www.schemastore.org/json/ SchemaStore}
+ *
+ * @example
+ * const result = await downloadFromSchemaStore(
+ *   ["package.json", "tsconfig.json"],
+ *   "./schemas",
+ *   registry,
+ *   saveRegistry
+ * );
  */
 export async function downloadFromSchemaStore(
     schemaNames: string[],
@@ -172,7 +234,17 @@ export async function downloadFromSchemaStore(
 }
 
 /**
- * List available schemas from SchemaStore
+ * Lists all available schema names from the SchemaStore catalog.
+ * Useful for discovering what schemas are available for download.
+ *
+ * @returns {Promise<string[]>} Array of schema names, or empty array on error
+ * @see {@link https://www.schemastore.org/json/ SchemaStore}
+ *
+ * @example
+ * const schemas = await listSchemaStoreSchemas();
+ * console.log(`Available: ${schemas.length} schemas`);
+ * // Filter for TypeScript-related schemas
+ * const tsSchemas = schemas.filter(s => s.toLowerCase().includes("typescript"));
  */
 export async function listSchemaStoreSchemas(): Promise<string[]> {
     try {
@@ -186,7 +258,26 @@ export async function listSchemaStoreSchemas(): Promise<string[]> {
 }
 
 /**
- * Download a schema from a GitHub repository
+ * Downloads a schema file from a GitHub repository.
+ * Tracks the git commit SHA for version management and update detection.
+ *
+ * @param {string} repo - GitHub repository in "owner/repo" format
+ * @param {string} filePath - Path to the schema file within the repository
+ * @param {string} [branch="main"] - Branch to download from
+ * @param {string} standardsDir - Directory to save the downloaded schema
+ * @param {SchemaRegistry} registry - Registry object to update with download info
+ * @param {Function} saveRegistryFn - Callback function to persist registry changes
+ * @returns {Promise<DownloadResult>} Result indicating success/failure with path or error
+ *
+ * @example
+ * const result = await downloadFromGitHub(
+ *   "SchemaStore/schemastore",
+ *   "src/schemas/json/package.json",
+ *   "master",
+ *   "./schemas",
+ *   registry,
+ *   saveRegistry
+ * );
  */
 export async function downloadFromGitHub(
     repo: string,
@@ -239,7 +330,21 @@ export async function downloadFromGitHub(
 }
 
 /**
- * Check if a GitHub-sourced schema has updates available
+ * Checks if a GitHub-sourced schema has updates available.
+ * Compares the stored commit SHA with the latest commit on the main branch.
+ *
+ * @param {SchemaMetadata|undefined} metadata - Metadata for a previously downloaded schema
+ * @returns {Promise<Object>} Object with hasUpdate boolean and commit SHA information
+ * @returns {boolean} returns.hasUpdate - True if newer commit exists
+ * @returns {string} [returns.currentCommit] - Currently stored commit SHA
+ * @returns {string} [returns.latestCommit] - Latest commit SHA from GitHub
+ *
+ * @example
+ * const metadata = registry.schemas["my-schema"];
+ * const update = await checkGitHubUpdate(metadata);
+ * if (update.hasUpdate) {
+ *   console.log(`Update available: ${update.currentCommit} -> ${update.latestCommit}`);
+ * }
  */
 export async function checkGitHubUpdate(
     metadata: SchemaMetadata | undefined
