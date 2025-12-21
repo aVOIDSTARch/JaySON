@@ -15,3 +15,8 @@ Requirements
 12. the validate command should check if an update is available after checking if it has internet access and suggest an update to the user if one is available as weill as a parameter for selecting any standard and identifying standards in existing schemas/objects
 13. Must be broken into modules for each major function.
 14. Comprehensive command line interface that has a great --help output and the commands should be aliased to jayson not index
+15. Implement the JSDocs system and makes sure all code is properly commented.
+16. Create the documentation in the docs folder
+17. implement or import the simplest web server in folder to serve both the documentation, html reports, and the application web interface
+18. import a web scraper that will take a api docs page and create the correct json objects and html/css docs pages
+19. everything will use localhost: 3333 for now
