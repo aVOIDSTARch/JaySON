@@ -1,0 +1,21 @@
+{
+    "id": 1,
+    "name": "John Doe",
+    "email": "john.doe@example.com",
+    "age": 30,
+    "role": "admin",
+    "active": true,
+    "tags": ["developer", "team-lead"],
+    "address": {
+        "street": "123 Main St",
+        "city": "New York",
+        "country": "USA",
+        "zipCode": "10001"
+    },
+    "metadata": {
+        "lastLogin": "2024-01-15T10:30:00Z",
+        "preferences": {
+            "theme": "dark"
+        }
+    }
+}

@@ -1,0 +1,12 @@
+{
+    "id": "not-a-number",
+    "name": "",
+    "email": "invalid-email",
+    "age": -5,
+    "role": "superadmin",
+    "active": "yes",
+    "tags": "not-an-array",
+    "address": {
+        "street": "123 Main St"
+    }
+}

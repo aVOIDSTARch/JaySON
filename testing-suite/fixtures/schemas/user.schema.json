@@ -1,0 +1,72 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "title": "User",
+    "description": "A user object for testing",
+    "type": "object",
+    "properties": {
+        "id": {
+            "type": "integer",
+            "description": "Unique identifier",
+            "minimum": 1
+        },
+        "name": {
+            "type": "string",
+            "description": "User's full name",
+            "minLength": 1,
+            "maxLength": 100
+        },
+        "email": {
+            "type": "string",
+            "description": "User's email address",
+            "format": "email",
+            "pattern": "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\\.[a-zA-Z]{2,}$"
+        },
+        "age": {
+            "type": "integer",
+            "description": "User's age",
+            "minimum": 0,
+            "maximum": 150
+        },
+        "role": {
+            "type": "string",
+            "description": "User's role",
+            "enum": ["admin", "user", "guest"]
+        },
+        "active": {
+            "type": "boolean",
+            "description": "Whether the user is active",
+            "default": true
+        },
+        "tags": {
+            "type": "array",
+            "description": "User tags",
+            "items": {
+                "type": "string"
+            }
+        },
+        "address": {
+            "type": "object",
+            "description": "User's address",
+            "properties": {
+                "street": {
+                    "type": "string"
+                },
+                "city": {
+                    "type": "string"
+                },
+                "country": {
+                    "type": "string"
+                },
+                "zipCode": {
+                    "type": "string"
+                }
+            },
+            "required": ["city", "country"]
+        },
+        "metadata": {
+            "type": "object",
+            "additionalProperties": true
+        }
+    },
+    "required": ["id", "name", "email"]
+}

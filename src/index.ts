@@ -56,6 +56,29 @@ import {
 
 import { generateFromSchema } from "./util/template-generator.js";
 
+import {
+    formatReport as formatReportUtil,
+    formatSummary as formatSummaryUtil,
+    generateReport as generateReportUtil,
+    generateSummaryReport as generateSummaryReportUtil,
+    generateAllFormats as generateAllFormatsUtil,
+    generateAllFormatsSummary as generateAllFormatsSummaryUtil,
+    printReport as printReportUtil,
+    printSummary as printSummaryUtil,
+    type ReportFormat,
+    type ReportOptions,
+    type GenerateReportOptions,
+} from "./util/report-generator.js";
+
+import {
+    generateTypeScript as generateTypeScriptUtil,
+    generateJavaScript as generateJavaScriptUtil,
+    generateTypeScriptFile as generateTypeScriptFileUtil,
+    generateJavaScriptFile as generateJavaScriptFileUtil,
+    generateBoth as generateBothUtil,
+    type GenerateOptions,
+} from "./util/type-generator.js";
+
 /**
  * JSON Maker class for schema validation and JSON file operations
  */
@@ -223,6 +246,144 @@ export class JsonMaker {
     listSchemas(): string[] {
         return listSchemasUtil(this.schemaDir);
     }
+
+    /**
+     * Format a validation result as a report string
+     */
+    formatReport(
+        result: ValidationResult,
+        format: ReportFormat,
+        options: ReportOptions = {}
+    ): string {
+        return formatReportUtil(result, format, options);
+    }
+
+    /**
+     * Format multiple validation results as a summary report string
+     */
+    formatSummary(
+        results: Map<string, ValidationResult>,
+        format: ReportFormat,
+        options: ReportOptions = {}
+    ): string {
+        return formatSummaryUtil(results, format, options);
+    }
+
+    /**
+     * Generate a validation report and write to file
+     */
+    generateReport(
+        result: ValidationResult,
+        outputPath: string,
+        options: GenerateReportOptions
+    ): void {
+        generateReportUtil(result, outputPath, options);
+    }
+
+    /**
+     * Generate a summary report for multiple files and write to file
+     */
+    generateSummaryReport(
+        results: Map<string, ValidationResult>,
+        outputPath: string,
+        options: GenerateReportOptions
+    ): void {
+        generateSummaryReportUtil(results, outputPath, options);
+    }
+
+    /**
+     * Generate reports in all formats (terminal, markdown, html)
+     */
+    generateAllFormats(
+        result: ValidationResult,
+        outputDir: string,
+        baseName: string,
+        options: ReportOptions = {}
+    ): string[] {
+        return generateAllFormatsUtil(result, outputDir, baseName, options);
+    }
+
+    /**
+     * Generate summary reports in all formats
+     */
+    generateAllFormatsSummary(
+        results: Map<string, ValidationResult>,
+        outputDir: string,
+        baseName: string,
+        options: ReportOptions = {}
+    ): string[] {
+        return generateAllFormatsSummaryUtil(results, outputDir, baseName, options);
+    }
+
+    /**
+     * Print a validation report to the console
+     */
+    printReport(result: ValidationResult, options: ReportOptions = {}): void {
+        printReportUtil(result, options);
+    }
+
+    /**
+     * Print a summary report to the console
+     */
+    printSummary(
+        results: Map<string, ValidationResult>,
+        options: ReportOptions = {}
+    ): void {
+        printSummaryUtil(results, options);
+    }
+
+    /**
+     * Generate TypeScript interface from a schema
+     */
+    generateTypeScript(schemaPath: string, options: GenerateOptions = {}): string {
+        const schema = this.loadSchema(schemaPath);
+        return generateTypeScriptUtil(schema, options);
+    }
+
+    /**
+     * Generate JavaScript ES5 class from a schema
+     */
+    generateJavaScript(schemaPath: string, options: GenerateOptions = {}): string {
+        const schema = this.loadSchema(schemaPath);
+        return generateJavaScriptUtil(schema, options);
+    }
+
+    /**
+     * Generate TypeScript interface and write to file
+     */
+    generateTypeScriptFile(
+        schemaPath: string,
+        outputPath: string,
+        options: GenerateOptions = {}
+    ): void {
+        const schema = this.loadSchema(schemaPath);
+        generateTypeScriptFileUtil(schema, outputPath, options);
+    }
+
+    /**
+     * Generate JavaScript ES5 class and write to file
+     */
+    generateJavaScriptFile(
+        schemaPath: string,
+        outputPath: string,
+        options: GenerateOptions = {}
+    ): void {
+        const schema = this.loadSchema(schemaPath);
+        generateJavaScriptFileUtil(schema, outputPath, options);
+    }
+
+    /**
+     * Generate both TypeScript and JavaScript files from a schema
+     */
+    generateTypes(
+        schemaPath: string,
+        outputDir: string,
+        baseName: string,
+        options: GenerateOptions = {}
+    ): { tsPath: string; jsPath: string } {
+        const schema = this.loadSchema(schemaPath);
+        return generateBothUtil(schema, outputDir, baseName, options);
+    }
 }
 
 // Export a default instance
@@ -271,3 +432,14 @@ export {
     type UpdateResult,
     type DetectedStandard,
 } from "./update-standards.js";
+
+// Re-export report generator utilities
+export {
+    getFormatExtension,
+    type ReportFormat,
+    type ReportOptions,
+    type GenerateReportOptions,
+} from "./util/report-generator.js";
+
+// Re-export type generator utilities
+export { type GenerateOptions } from "./util/type-generator.js";

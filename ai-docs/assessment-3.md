@@ -5,7 +5,7 @@
 
 ---
 
-## Compliant (10/13)
+## Compliant (12/13)
 
 ### 1. Parse and Validate JSON Schemas
 > Must be able to parse and validate JSON schemas against industry standards.
@@ -150,21 +150,48 @@ Codebase organized into focused utility modules:
 
 ---
 
-## Non-Compliant (3/13)
-
 ### 2. Generate Non-Compliance Report
 > Must be able to generate a report of non-compliance in simple formatted text file.
 
-**Status:** Not implemented
+Three independent format modules for easy updates:
 
-Validation returns `ValidationResult` objects but no method exists to export results to a formatted text file.
+- **Terminal:** Plain text with ASCII formatting ([terminal-format.ts](src/util/formats/terminal-format.ts))
+- **Markdown:** GitHub-flavored markdown ([markdown-format.ts](src/util/formats/markdown-format.ts))
+- **HTML:** Inline CSS styling ([html-format.ts](src/util/formats/html-format.ts))
 
-**Required:**
-- `generateReport(result: ValidationResult, outputPath: string)` method
-- Text formatting for validation errors
-- File output capability
+API:
+
+- `formatReport(result, format)` - Get formatted string
+- `generateReport(result, outputPath, options)` - Write single report
+- `generateAllFormats(result, outputDir, baseName)` - Generate all three formats
+- `printReport(result)` - Console output
+
+**Location:** [src/util/report-generator.ts](src/util/report-generator.ts), [src/util/formats/](src/util/formats/)
+
+### 10. Generate TypeScript/JavaScript Types from Schema
+> Should be able to generate standard compliant .ts and .js that contain a schema converted into a type or class respectively that is a es5 module ready for import
+
+Generates both TypeScript interfaces and JavaScript ES5 classes:
+
+- `generateTypeScript(schemaPath)` - Generate TypeScript interface string
+- `generateJavaScript(schemaPath)` - Generate JavaScript ES5 class string
+- `generateTypeScriptFile(schemaPath, outputPath)` - Write TypeScript to file
+- `generateJavaScriptFile(schemaPath, outputPath)` - Write JavaScript to file
+- `generateTypes(schemaPath, outputDir, baseName)` - Generate both files
+
+Features:
+
+- Nested interfaces/classes for complex properties
+- JSDoc comments with descriptions
+- Validation methods in JS classes
+- `toJSON()` and `fromJSON()` methods
+- ES5 module exports
+
+**Location:** [src/util/type-generator.ts](src/util/type-generator.ts)
 
 ---
+
+## Non-Compliant (1/13)
 
 ### 4. CLI with `jayson init`
 > Must be able to run on the command line with minimal setup interaction from the user - preferably just jayson init as the basic command to setup
@@ -172,46 +199,34 @@ Validation returns `ValidationResult` objects but no method exists to export res
 **Status:** Not implemented
 
 No CLI exists:
+
 - No `bin` field in `package.json`
 - No command parsing
 - No `init` or other commands
 
 **Required:**
+
 - CLI entry point (`src/cli.ts`)
 - `bin` field in `package.json`
 - Commands: `init`, `validate`, `report`
 
 ---
 
-### 10. Generate TypeScript/JavaScript Types from Schema
-> Should be able to generate standard compliant .ts and .js that contain a schema converted into a type or class respectively that is a es5 module ready for import
-
-**Status:** Not implemented
-
-No code generation from schemas exists.
-
-**Required:**
-- `generateTypes(schemaPath, outputPath)` for TypeScript interfaces
-- `generateClass(schemaPath, outputPath)` for JavaScript classes
-- ES5-compatible output
-
----
-
 ## Summary
 
-| Status | Count | Requirements |
-|--------|-------|--------------|
-| Compliant | 10 | 1, 3, 5, 6, 7, 8, 9, 11, 12, 13 |
-| Non-Compliant | 3 | 2, 4, 10 |
+| Status        | Count | Requirements                          |
+|---------------|-------|---------------------------------------|
+| Compliant     | 12    | 1, 2, 3, 5, 6, 7, 8, 9, 10, 11, 12, 13 |
+| Non-Compliant | 1     | 4                                     |
 
 ### Progress Since Assessment v2
 
+- **Requirement 2** (report generation): Now compliant with three format modules (terminal, markdown, HTML)
+- **Requirement 10** (type generation): Now compliant with TypeScript interface and JavaScript class generation
 - **Requirement 11** (ESM primary, CJS secondary): Now compliant with dual build system
 - **Requirement 12** (validate command features): Now compliant with internet check, update detection, and standard identification
-- **Requirement 13** (modular architecture): Now compliant with 11 focused utility modules
+- **Requirement 13** (modular architecture): Now compliant with 15 focused utility modules
 
 ### Priority Order for Remaining Work
 
 1. **CLI (Req 4)** - Core usability requirement, enables all other commands
-2. **Report Generation (Req 2)** - Enables validation workflow output
-3. **Type Generation (Req 10)** - High-value feature for developer experience
