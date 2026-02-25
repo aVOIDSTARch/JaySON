@@ -1,12 +1,15 @@
 {
   "name": "@casinelli/jayson",
   "version": "1.0.1",
-  "description": "A TypeScript utility for working with JSON schemas, validating data, and creating JSON files.",
+  "description": "Comprehensive, lightweight, and fast JSON library: schema validation, I/O, transforms, type generation, and reports. Zero runtime dependencies.",
   "keywords": [
     "json",
-    "schema",
+    "json-schema",
     "validation",
-    "typescript"
+    "typescript",
+    "lightweight",
+    "fast",
+    "schema"
   ],
   "homepage": "https://github.com/aVOIDSTARch/JaySON#readme",
   "bugs": {
@@ -59,7 +62,12 @@
     "docs": "typedoc",
     "docs:watch": "typedoc --watch"
   },
-  "dependencies": {
+  "devDependencies": {
+    "@types/node": "^25.0.3",
+    "@vitest/coverage-v8": "^4.0.16",
+    "typedoc": "^0.28.15",
+    "typescript": "^5.3.0",
+    "vitest": "^4.0.16",
     "argparse": "^2.0.1",
     "assertion-error": "^2.0.1",
     "ast-v8-to-istanbul": "^0.3.9",
@@ -113,13 +121,6 @@
     "vite": "^7.3.0",
     "why-is-node-running": "^2.3.0",
     "yaml": "^2.8.2"
-  },
-  "devDependencies": {
-    "@types/node": "^25.0.3",
-    "@vitest/coverage-v8": "^4.0.16",
-    "typedoc": "^0.28.15",
-    "typescript": "^5.3.0",
-    "vitest": "^4.0.16"
   },
   "module": "dist/esm/index.js"
 }
