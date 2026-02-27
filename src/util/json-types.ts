@@ -138,24 +138,40 @@ export interface JsonSchemaProperty {
 
 /**
  * Validation error details.
- * Contains information about a specific validation failure.
+ * Compatible with JSON Schema output format (instancePath, schemaPath, keyword).
  *
  * @interface ValidationError
  *
  * @example
  * const error: ValidationError = {
  *   path: "user.email",
- *   message: "Value does not match pattern: ^[a-z]+@[a-z]+\\.[a-z]+$",
- *   value: "invalid-email"
+ *   instancePath: "/user/email",
+ *   schemaPath: "#/properties/email",
+ *   keyword: "pattern",
+ *   message: "Value does not match pattern",
+ *   value: "invalid-email",
+ *   code: "pattern"
  * };
  */
 export interface ValidationError {
-    /** JSON path to the invalid property (e.g., "user.address.city") */
+    /** Dot-notation path to the invalid property (e.g., "user.address.city") */
     path: string;
+    /** JSON Pointer to the instance location (e.g., "/user/email") — RFC 6901 */
+    instancePath?: string;
+    /** JSON Pointer to the schema location that failed (e.g., "#/properties/email") */
+    schemaPath?: string;
+    /** Schema keyword that failed (e.g., "type", "required", "pattern") */
+    keyword?: string;
+    /** Machine-readable error code for programmatic handling */
+    code?: string;
     /** Human-readable error message explaining the validation failure */
     message: string;
     /** The actual value that failed validation */
     value?: unknown;
+    /** Simple user-friendly explanation of what went wrong */
+    explanation?: string;
+    /** Optional hint on how to fix the issue */
+    hint?: string;
 }
 
 /**

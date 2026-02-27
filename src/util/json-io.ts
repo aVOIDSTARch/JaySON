@@ -9,6 +9,7 @@
 import * as fs from "fs";
 import * as path from "path";
 import type { DataSourceConfig, WriteOptions } from "./json-types.js";
+import { fetchUrl } from "./http-client.js";
 
 /**
  * Reads data from a configured data source.
@@ -48,12 +49,58 @@ export function readData(config: DataSourceConfig): unknown {
 
         case "url":
             throw new Error(
-                "URL data source not yet implemented - use WebFetch tool"
+                "URL data source requires async API. Use readDataAsync(config) instead."
             );
 
         default:
             throw new Error(`Unknown data source type: ${config.type}`);
     }
+}
+
+/**
+ * Reads data from a configured data source asynchronously.
+ * Supports files, in-memory objects, and URLs (HTTP/HTTPS).
+ *
+ * @param {DataSourceConfig} config - Configuration specifying the data source
+ * @returns {Promise<unknown>} Promise resolving to the parsed JSON data
+ * @throws {Error} If file path is missing for file source
+ * @throws {Error} If file is not found
+ * @throws {Error} If data is missing for object source
+ * @throws {Error} If URL is missing for url source
+ *
+ * @example
+ * const fileData = await readDataAsync({ type: "file", path: "./data.json" });
+ * const urlData = await readDataAsync({ type: "url", url: "https://api.example.com/data.json" });
+ */
+export async function readDataAsync(config: DataSourceConfig): Promise<unknown> {
+    switch (config.type) {
+        case "file":
+        case "object":
+            return readData(config);
+        case "url":
+            if (!config.url) {
+                throw new Error("URL is required for url data source");
+            }
+            const content = await fetchUrl(config.url);
+            return JSON.parse(content);
+        default:
+            throw new Error(`Unknown data source type: ${config.type}`);
+    }
+}
+
+/**
+ * Reads and parses JSON from a file path or URL asynchronously.
+ *
+ * @param {string} pathOrUrl - File path or HTTP/HTTPS URL
+ * @returns {Promise<unknown>} Promise resolving to the parsed JSON data
+ */
+export async function readJsonAsync<T = unknown>(
+    pathOrUrl: string
+): Promise<T> {
+    if (pathOrUrl.startsWith("http://") || pathOrUrl.startsWith("https://")) {
+        return readDataAsync({ type: "url", url: pathOrUrl }) as Promise<T>;
+    }
+    return readDataAsync({ type: "file", path: pathOrUrl }) as Promise<T>;
 }
 
 /**
@@ -177,7 +224,15 @@ export function splitJsonFile(
     splitBy: string,
     fileNamePattern: (value: string) => string
 ): string[] {
-    const data = readData({ type: "file", path: inputPath }) as Record<string, unknown>[];
+    const data = readData({ type: "file", path: inputPath });
+
+    if (!Array.isArray(data)) {
+        throw new Error(
+            `splitJsonFile requires an array input. File "${inputPath}" contains ${typeof data === "object" && data !== null ? "an object" : typeof data}. ` +
+                "Provide a JSON file with a root array to split."
+        );
+    }
+
     const groups = new Map<string, Record<string, unknown>[]>();
 
     // Group items by the split field value

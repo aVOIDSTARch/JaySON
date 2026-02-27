@@ -20,6 +20,8 @@ export interface ReportOptions {
     filePath?: string;
     schemaPath?: string;
     timestamp?: boolean;
+    /** When true, show user-friendly explanation and hint for each error. Default: true. */
+    showExplanations?: boolean;
 }
 
 /**
@@ -36,7 +38,7 @@ export interface ReportOptions {
  */
 export function formatReport(result: ValidationResult, options: ReportOptions = {}): string {
     const lines: string[] = [];
-    const { title = "Validation Report", filePath, schemaPath, timestamp = true } = options;
+    const { title = "Validation Report", filePath, schemaPath, timestamp = true, showExplanations = true } = options;
 
     // Header
     lines.push("=".repeat(60));
@@ -71,7 +73,7 @@ export function formatReport(result: ValidationResult, options: ReportOptions = 
 
         // Errors
         result.errors.forEach((error, index) => {
-            lines.push(formatError(error, index + 1));
+            lines.push(formatError(error, index + 1, showExplanations));
             lines.push("");
         });
     }
@@ -86,10 +88,11 @@ export function formatReport(result: ValidationResult, options: ReportOptions = 
  *
  * @param {ValidationError} error - The error to format
  * @param {number} index - Error number for display
+ * @param {boolean} showExplanations - Whether to show explanation and hint
  * @returns {string} Formatted error text
  * @private
  */
-function formatError(error: ValidationError, index: number): string {
+function formatError(error: ValidationError, index: number, showExplanations: boolean = true): string {
     const lines: string[] = [];
 
     lines.push(`Error #${index}:`);
@@ -99,6 +102,15 @@ function formatError(error: ValidationError, index: number): string {
     if (error.value !== undefined) {
         const valueStr = formatValue(error.value);
         lines.push(`  Value:   ${valueStr}`);
+    }
+
+    if (showExplanations) {
+        if (error.explanation) {
+            lines.push(`  Why:     ${error.explanation}`);
+        }
+        if (error.hint) {
+            lines.push(`  Fix:     ${error.hint}`);
+        }
     }
 
     return lines.join("\n");

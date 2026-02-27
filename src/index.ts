@@ -33,6 +33,19 @@ export type {
     WriteOptions,
 } from "./util/json-types.js";
 
+export type { ExtractFieldsOptions } from "./util/data-transform.js";
+export type { ValidateOptions, CompiledValidator } from "./util/json-validator.js";
+export { compile, validateAsync, pathToInstancePointer } from "./util/json-validator.js";
+export {
+    ERROR_CATALOG,
+    ERROR_CODES,
+    getErrorDefinition,
+    createErrorFromCatalog,
+    enrichError,
+    type ErrorDefinition,
+    type ErrorEnrichmentOptions,
+} from "./util/errors.js";
+
 // Import types for internal use
 import type {
     JsonSchema,
@@ -49,10 +62,20 @@ import {
     listSchemas as listSchemasUtil,
 } from "./util/schema-loader.js";
 
-import { validate } from "./util/json-validator.js";
+import {
+    validate,
+    compile,
+    validateAsync,
+    pathToInstancePointer,
+    type ValidateOptions,
+    type CompiledValidator,
+} from "./util/json-validator.js";
+import { createErrorFromCatalog } from "./util/errors.js";
 
 import {
     readData as readDataUtil,
+    readDataAsync as readDataAsyncUtil,
+    readJsonAsync as readJsonAsyncUtil,
     writeJson as writeJsonUtil,
     mergeJsonFiles as mergeJsonFilesUtil,
     splitJsonFile as splitJsonFileUtil,
@@ -62,6 +85,7 @@ import {
     extractFields as extractFieldsUtil,
     transformData as transformDataUtil,
     filterData as filterDataUtil,
+    type ExtractFieldsOptions,
 } from "./util/data-transform.js";
 
 import { generateFromSchema } from "./util/template-generator.js";
@@ -144,14 +168,61 @@ export class JsonMaker {
 
     /**
      * Validates data against a JSON Schema.
+     * Accepts either a schema file path or an in-memory schema object.
      *
      * @param {unknown} data - The data to validate
-     * @param {string} schemaPath - Path to the schema file
+     * @param {string | JsonSchema} schemaOrPath - Path to the schema file or schema object
+     * @param {ValidateOptions} [options] - Validation options (e.g. validateFormat for format keyword)
      * @returns {ValidationResult} Validation result with valid flag and any errors
      */
-    validate(data: unknown, schemaPath: string): ValidationResult {
-        const schema = this.loadSchema(schemaPath);
-        return validate(data, schema);
+    validate(
+        data: unknown,
+        schemaOrPath: string | JsonSchema,
+        options?: ValidateOptions
+    ): ValidationResult {
+        const schema =
+            typeof schemaOrPath === "string"
+                ? this.loadSchema(schemaOrPath)
+                : schemaOrPath;
+        return validate(data, schema, options);
+    }
+
+    /**
+     * Compiles a schema into a validator function for repeated use.
+     *
+     * @param {string | JsonSchema} schemaOrPath - Path to schema file or schema object
+     * @param {ValidateOptions} [options] - Validation options
+     * @returns {CompiledValidator} Validator function
+     */
+    compile(
+        schemaOrPath: string | JsonSchema,
+        options?: ValidateOptions
+    ): CompiledValidator {
+        const schema =
+            typeof schemaOrPath === "string"
+                ? this.loadSchema(schemaOrPath)
+                : schemaOrPath;
+        return compile(schema, options);
+    }
+
+    /**
+     * Validates data asynchronously. Resolves with ValidationResult.
+     *
+     * @param {unknown} data - The data to validate
+     * @param {string | JsonSchema} schemaOrPath - Path to schema file or schema object
+     * @param {ValidateOptions} [options] - Validation options
+     * @returns {Promise<ValidationResult>} Promise resolving to validation result
+     */
+    validateAsync(
+        data: unknown,
+        schemaOrPath: string | JsonSchema,
+        options?: ValidateOptions
+    ): Promise<ValidationResult> {
+        const schema =
+            typeof schemaOrPath === "string"
+                ? this.loadSchema(schemaOrPath)
+                : schemaOrPath;
+        return validateAsync(data, schema, options);
     }
 
     /**
@@ -159,28 +230,31 @@ export class JsonMaker {
      * Reads and parses the file, then validates its contents.
      *
      * @param {string} filePath - Path to the JSON file to validate
-     * @param {string} schemaPath - Path to the schema file
+     * @param {string | JsonSchema} schemaOrPath - Path to the schema file or schema object
      * @returns {ValidationResult} Validation result with valid flag and any errors
      */
-    validateFile(filePath: string, schemaPath: string): ValidationResult {
+    validateFile(filePath: string, schemaOrPath: string | JsonSchema): ValidationResult {
         if (!fs.existsSync(filePath)) {
             return {
                 valid: false,
-                errors: [{ path: "", message: `File not found: ${filePath}` }],
+                errors: [
+                    createErrorFromCatalog("file-not-found", "", { path: filePath }),
+                ],
             };
         }
 
         try {
             const content = fs.readFileSync(filePath, "utf-8");
             const data = JSON.parse(content);
-            return this.validate(data, schemaPath);
+            return this.validate(data, schemaOrPath);
         } catch (error) {
+            const errMsg = error instanceof Error ? error.message : String(error);
             return {
                 valid: false,
                 errors: [
                     {
-                        path: "",
-                        message: `Failed to parse JSON: ${error instanceof Error ? error.message : String(error)}`,
+                        ...createErrorFromCatalog("file-parse-error", ""),
+                        message: `Failed to parse JSON: ${errMsg}`,
                     },
                 ],
             };
@@ -196,12 +270,12 @@ export class JsonMaker {
      */
     validateFiles(
         filePaths: string[],
-        schemaPath: string
+        schemaOrPath: string | JsonSchema
     ): Map<string, ValidationResult> {
         const results = new Map<string, ValidationResult>();
 
         for (const filePath of filePaths) {
-            results.set(filePath, this.validateFile(filePath, schemaPath));
+            results.set(filePath, this.validateFile(filePath, schemaOrPath));
         }
 
         return results;
@@ -209,13 +283,24 @@ export class JsonMaker {
 
     /**
      * Reads data from a configured source.
-     * Supports file, inline, and URL data sources.
+     * Supports file and inline data sources. For URLs, use readDataAsync.
      *
      * @param {DataSourceConfig} config - Data source configuration
      * @returns {unknown} The parsed data
      */
     readData(config: DataSourceConfig): unknown {
         return readDataUtil(config);
+    }
+
+    /**
+     * Reads data from a configured source asynchronously.
+     * Supports file, inline, and URL (HTTP/HTTPS) data sources.
+     *
+     * @param {DataSourceConfig} config - Data source configuration
+     * @returns {Promise<unknown>} Promise resolving to the parsed data
+     */
+    readDataAsync(config: DataSourceConfig): Promise<unknown> {
+        return readDataAsyncUtil(config);
     }
 
     /**
@@ -263,8 +348,12 @@ export class JsonMaker {
      * @param {string[]} fields - Field names to extract (supports "a.b.c" notation)
      * @returns {T[]} Array of objects containing only the specified fields
      */
-    extractFields<T = unknown>(data: unknown, fields: string[]): T[] {
-        return extractFieldsUtil<T>(data, fields);
+    extractFields<T = unknown>(
+        data: unknown,
+        fields: string[],
+        options?: ExtractFieldsOptions
+    ): T[] {
+        return extractFieldsUtil<T>(data, fields, options);
     }
 
     /**
@@ -557,8 +646,12 @@ export const jsonMaker = new JsonMaker();
  * @param {string} schemaPath - Path to schema file
  * @returns {ValidationResult} Validation result
  */
-export function validateJson(data: unknown, schemaPath: string): ValidationResult {
-    return jsonMaker.validate(data, schemaPath);
+export function validateJson(
+    data: unknown,
+    schemaOrPath: string | JsonSchema,
+    options?: ValidateOptions
+): ValidationResult {
+    return jsonMaker.validate(data, schemaOrPath, options);
 }
 
 /**
@@ -569,8 +662,11 @@ export function validateJson(data: unknown, schemaPath: string): ValidationResul
  * @param {string} schemaPath - Path to schema file
  * @returns {ValidationResult} Validation result
  */
-export function validateJsonFile(filePath: string, schemaPath: string): ValidationResult {
-    return jsonMaker.validateFile(filePath, schemaPath);
+export function validateJsonFile(
+    filePath: string,
+    schemaOrPath: string | JsonSchema
+): ValidationResult {
+    return jsonMaker.validateFile(filePath, schemaOrPath);
 }
 
 /**
@@ -595,6 +691,18 @@ export function writeJson(data: unknown, outputPath: string, options?: WriteOpti
  */
 export function readJson<T = unknown>(filePath: string): T {
     return jsonMaker.readData({ type: "file", path: filePath }) as T;
+}
+
+/**
+ * Reads and parses JSON from a file path or URL asynchronously.
+ * Use for URLs or when async I/O is preferred.
+ *
+ * @template T - Expected return type
+ * @param {string} pathOrUrl - File path or HTTP/HTTPS URL
+ * @returns {Promise<T>} Promise resolving to the parsed JSON data
+ */
+export function readJsonAsync<T = unknown>(pathOrUrl: string): Promise<T> {
+    return readJsonAsyncUtil(pathOrUrl);
 }
 
 /**

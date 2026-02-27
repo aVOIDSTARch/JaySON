@@ -51,7 +51,7 @@ describe("json-io", () => {
         it("should throw error for URL type (not implemented)", () => {
             expect(() => {
                 readData({ type: "url", url: "https://example.com/data.json" });
-            }).toThrow("URL data source not yet implemented");
+            }).toThrow("URL data source requires async API");
         });
 
         it("should throw error for unknown data source type", () => {
@@ -185,6 +185,15 @@ describe("json-io", () => {
 
             expect(files).toHaveLength(2);
             expect(fs.existsSync(path.join(outputDir, "unknown.json"))).toBe(true);
+        });
+
+        it("should throw clear error when input is not an array", () => {
+            const inputPath = createTempFile("split-object.json", { not: "array" });
+            const outputDir = createTempDir("split-error-output");
+
+            expect(() => {
+                splitJsonFile(inputPath, outputDir, "field", (f) => `${f}.json`);
+            }).toThrow(/splitJsonFile requires an array input.*contains an object/);
         });
     });
 });

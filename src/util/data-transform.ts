@@ -40,36 +40,74 @@ export function getNestedValue(obj: Record<string, unknown>, path: string): unkn
 }
 
 /**
+ * Options for extractFields.
+ */
+export interface ExtractFieldsOptions {
+    /**
+     * When true (default), paths like "user.name" become flat keys: { "user.name": value }.
+     * When false, paths create nested structure: { user: { name: value } }.
+     */
+    flatten?: boolean;
+}
+
+/**
+ * Sets a nested value in an object using dot-notation path.
+ * Creates intermediate objects as needed.
+ */
+function setNestedValue(
+    obj: Record<string, unknown>,
+    path: string,
+    value: unknown
+): void {
+    const parts = path.split(".");
+    let current: Record<string, unknown> = obj;
+
+    for (let i = 0; i < parts.length - 1; i++) {
+        const part = parts[i];
+        if (!(part in current) || typeof current[part] !== "object" || current[part] === null) {
+            current[part] = {};
+        }
+        current = current[part] as Record<string, unknown>;
+    }
+    current[parts[parts.length - 1]] = value;
+}
+
+/**
  * Extracts specific fields from JSON data into a new array of objects.
  * Supports nested field extraction using dot notation.
  *
  * @template T - The type of the extracted objects
  * @param {unknown} data - The source data (object or array of objects)
  * @param {string[]} fields - Array of field paths to extract
+ * @param {ExtractFieldsOptions} [options] - Options: flatten (default true) for flat keys vs nested structure
  * @returns {T[]} Array of objects containing only the specified fields
  *
  * @example
- * const users = [
- *   { id: 1, name: "John", email: "john@example.com", age: 30 },
- *   { id: 2, name: "Jane", email: "jane@example.com", age: 25 }
- * ];
- *
+ * // Flatten (default): paths become keys
  * extractFields(users, ["name", "email"]);
- * // Returns: [
- * //   { name: "John", email: "john@example.com" },
- * //   { name: "Jane", email: "jane@example.com" }
- * // ]
+ * // [{ name: "John", email: "john@example.com" }, ...]
  *
- * // Works with nested paths
- * extractFields(data, ["user.name", "user.address.city"]);
+ * // Nested: paths create nested structure
+ * extractFields(data, ["user.name", "user.address.city"], { flatten: false });
+ * // [{ user: { name: "John", address: { city: "NYC" } } }, ...]
  */
-export function extractFields<T = unknown>(data: unknown, fields: string[]): T[] {
+export function extractFields<T = unknown>(
+    data: unknown,
+    fields: string[],
+    options: ExtractFieldsOptions = {}
+): T[] {
+    const { flatten = true } = options;
     const dataArray = Array.isArray(data) ? data : [data];
 
     return (dataArray as Record<string, unknown>[]).map((item) => {
         const extracted: Record<string, unknown> = {};
         for (const field of fields) {
-            extracted[field] = getNestedValue(item, field);
+            const value = getNestedValue(item, field);
+            if (flatten) {
+                extracted[field] = value;
+            } else {
+                setNestedValue(extracted, field, value);
+            }
         }
         return extracted as T;
     });

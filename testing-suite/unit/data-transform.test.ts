@@ -72,7 +72,7 @@ describe("data-transform", () => {
             expect(result[1]).toEqual({ name: "Jane" });
         });
 
-        it("should extract nested fields using dot notation", () => {
+        it("should extract nested fields using dot notation (flatten default)", () => {
             const data = {
                 user: {
                     profile: {
@@ -87,6 +87,26 @@ describe("data-transform", () => {
 
             expect(result[0]["user.profile.name"]).toBe("John");
             expect(result[0]["user.profile.settings.theme"]).toBe("dark");
+        });
+
+        it("should create nested structure when flatten is false", () => {
+            const data = {
+                user: {
+                    profile: { name: "John", email: "john@example.com" },
+                },
+            };
+            const result = extractFields(data, ["user.profile.name", "user.profile.email"], {
+                flatten: false,
+            });
+
+            expect(result[0]).toEqual({
+                user: {
+                    profile: {
+                        name: "John",
+                        email: "john@example.com",
+                    },
+                },
+            });
         });
 
         it("should set undefined for non-existent fields", () => {

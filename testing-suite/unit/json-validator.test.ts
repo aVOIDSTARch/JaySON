@@ -2,8 +2,14 @@
  * Unit Tests for json-validator.ts
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
-import { validate, validateValue } from "../../src/util/json-validator.js";
+import { describe, it, expect } from "vitest";
+import {
+    validate,
+    validateValue,
+    compile,
+    validateAsync,
+    pathToInstancePointer,
+} from "../../src/util/json-validator.js";
 import type { JsonSchema } from "../../src/util/json-types.js";
 
 describe("json-validator", () => {
@@ -281,6 +287,147 @@ describe("json-validator", () => {
 
                 expect(validate({ value: "hello" }, schema).valid).toBe(true);
                 expect(validate({ value: 15 }, schema).valid).toBe(true);
+            });
+
+            it("should validate allOf", () => {
+                const schema: JsonSchema = {
+                    type: "object",
+                    properties: {
+                        value: {
+                            allOf: [
+                                { type: "string" },
+                                { minLength: 2 },
+                            ],
+                        },
+                    },
+                };
+
+                expect(validate({ value: "ab" }, schema).valid).toBe(true);
+                expect(validate({ value: "a" }, schema).valid).toBe(false);
+                expect(validate({ value: 123 }, schema).valid).toBe(false);
+            });
+
+            it("should fail explicitly for $ref (not yet supported)", () => {
+                const schema: JsonSchema = {
+                    type: "object",
+                    properties: {
+                        ref: { $ref: "#/definitions/Foo" },
+                    },
+                };
+
+                const result = validate({ ref: "anything" }, schema);
+                expect(result.valid).toBe(false);
+                expect(result.errors[0].message).toContain("$ref not yet supported");
+                expect(result.errors[0].message).toContain("#/definitions/Foo");
+            });
+        });
+
+        describe("additionalProperties", () => {
+            it("should reject additional properties when additionalProperties is false", () => {
+                const schema: JsonSchema = {
+                    type: "object",
+                    properties: { name: { type: "string" } },
+                    additionalProperties: false,
+                };
+
+                expect(validate({ name: "John" }, schema).valid).toBe(true);
+                const result = validate({ name: "John", extra: "value" }, schema);
+                expect(result.valid).toBe(false);
+                expect(result.errors[0].message).toContain("Additional property");
+                expect(result.errors[0].path).toBe("extra");
+            });
+
+            it("should allow additional properties when additionalProperties is true or undefined", () => {
+                const schema: JsonSchema = {
+                    type: "object",
+                    properties: { name: { type: "string" } },
+                    additionalProperties: true,
+                };
+
+                expect(validate({ name: "John", extra: "value" }, schema).valid).toBe(true);
+            });
+        });
+
+        describe("format validation (opt-in)", () => {
+            it("should validate format when validateFormat option is true", () => {
+                const schema: JsonSchema = {
+                    type: "object",
+                    properties: {
+                        email: { type: "string", format: "email" },
+                        uri: { type: "string", format: "uri" },
+                        uuid: { type: "string", format: "uuid" },
+                    },
+                };
+
+                expect(
+                    validate(
+                        { email: "a@b.co", uri: "https://x.com", uuid: "550e8400-e29b-41d4-a716-446655440000" },
+                        schema,
+                        { validateFormat: true }
+                    ).valid
+                ).toBe(true);
+
+                const badEmail = validate({ email: "not-an-email" }, schema, { validateFormat: true });
+                expect(badEmail.valid).toBe(false);
+                expect(badEmail.errors[0].message).toContain('format "email"');
+
+                const badUri = validate({ uri: "not-a-uri" }, schema, { validateFormat: true });
+                expect(badUri.valid).toBe(false);
+            });
+
+            it("should skip format validation when validateFormat is false or omitted", () => {
+                const schema: JsonSchema = {
+                    type: "object",
+                    properties: {
+                        email: { type: "string", format: "email" },
+                    },
+                };
+
+                expect(validate({ email: "not-an-email" }, schema).valid).toBe(true);
+                expect(validate({ email: "not-an-email" }, schema, { validateFormat: false }).valid).toBe(true);
+            });
+        });
+
+        describe("pathToInstancePointer", () => {
+            it("should convert dot path to JSON Pointer", () => {
+                expect(pathToInstancePointer("")).toBe("");
+                expect(pathToInstancePointer("name")).toBe("/name");
+                expect(pathToInstancePointer("user.email")).toBe("/user/email");
+                expect(pathToInstancePointer("items[0]")).toBe("/items/0");
+                expect(pathToInstancePointer("user.items[0].name")).toBe("/user/items/0/name");
+            });
+        });
+
+        describe("compile and validateAsync", () => {
+            it("should compile schema to validator function", () => {
+                const schema: JsonSchema = {
+                    type: "object",
+                    properties: { x: { type: "integer" } },
+                };
+                const fn = compile(schema);
+                expect(fn({ x: 1 }).valid).toBe(true);
+                expect(fn({ x: "bad" }).valid).toBe(false);
+            });
+
+            it("should validateAsync return Promise of result", async () => {
+                const schema: JsonSchema = { type: "string" };
+                const result = await validateAsync("ok", schema);
+                expect(result.valid).toBe(true);
+                const bad = await validateAsync(123, schema);
+                expect(bad.valid).toBe(false);
+            });
+        });
+
+        describe("error structure (instancePath, keyword, code)", () => {
+            it("should include instancePath and keyword in errors", () => {
+                const schema: JsonSchema = {
+                    type: "object",
+                    properties: { age: { type: "integer", minimum: 0 } },
+                };
+                const result = validate({ age: -1 }, schema);
+                expect(result.errors[0].instancePath).toBe("/age");
+                expect(result.errors[0].keyword).toBe("minimum");
+                expect(result.errors[0].code).toBe("minimum");
             });
         });
 

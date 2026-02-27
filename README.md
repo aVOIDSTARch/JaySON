@@ -4,14 +4,32 @@ A **comprehensive**, **lightweight**, and **fast** JSON library for TypeScript a
 
 ## Why JaySON
 
-- **Comprehensive** — JSON Schema validation (drafts 04, 06, 07, 2019-09, 2020-12), read/write/merge/split, transforms, templates, TypeScript/JS codegen, and multi-format reports (terminal, markdown, HTML).
-- **Lightweight** — No npm runtime dependencies; uses only Node built-ins. Small surface area and tree-shakeable entry points.
-- **Fast** — Schema caching, synchronous validation, and minimal allocations for hot paths.
+- **Comprehensive** — JSON Schema validation (drafts 04–2020-12), read/write/merge/split, transforms, templates, TypeScript/JS codegen, and multi-format reports (terminal, markdown, HTML).
+- **Lightweight** — Zero npm runtime dependencies; uses only Node built-ins. Modular entry points (`/validator`, `/io`) for tree-shaking.
+- **Fast** — Schema compilation for repeated validation, synchronous validation, minimal allocations.
+
+## Comparison
+
+| | JaySON | Ajv | Zod | TypeBox |
+|--|--------|-----|-----|---------|
+| Runtime deps | 0 | 0 | 0 | 0 |
+| JSON Schema native | ✓ | ✓ | ✗ (code-first) | ✓ |
+| File I/O, merge, split | ✓ | ✗ | ✗ | ✗ |
+| Type generation (TS/JS) | ✓ | ✗ | ✓ | ✓ |
+| Validation reports (HTML, MD) | ✓ | ✗ | ✗ | ✗ |
+| CLI | ✓ | ✗ | ✗ | ✗ |
+| Schema compilation | ✓ | ✓ | N/A | ✓ |
+| Format validation (opt-in) | ✓ | ✓ (addon) | ✓ | ✓ |
+
+**Choose JaySON when** you want a schema-first workflow with validation, I/O, reports, and codegen in one package—without adding dependencies.
 
 ## Features
 
 - Load and parse JSON schemas (draft-04 through 2020-12)
-- Validate JSON data against schemas (types, enums, patterns, ranges, `oneOf`/`anyOf`)
+- Validate JSON data against schemas (types, enums, patterns, ranges, `oneOf`/`anyOf`/`allOf`, `additionalProperties`)
+- Schema compilation (`compile(schema)`) for repeated validation
+- Format validation (email, uri, uuid, date-time) — opt-in via `{ validateFormat: true }`
+- Structured errors with `instancePath` (JSON Pointer), `keyword`, and `code`
 - Read/write JSON files with formatting options
 - Transform, filter, and extract fields (including dot-notation)
 - Merge and split JSON files
@@ -32,16 +50,21 @@ npm install @casinelli/jayson
 ### Basic validation
 
 ```typescript
-import { jsonMaker, validateJson } from "@casinelli/jayson";
+import { jsonMaker, validateJson, compile, validateAsync } from "@casinelli/jayson";
 
-// Validate data against a schema
+// Validate data against a schema (path or object)
 const result = validateJson(myData, "./json-schema/user.json");
+const result2 = validateJson(myData, schemaObject); // in-memory schema
 
-if (result.valid) {
-  console.log("Data is valid!");
-} else {
-  console.log("Validation errors:", result.errors);
-}
+// With format validation (email, uri, uuid, etc.)
+validateJson(myData, schema, { validateFormat: true });
+
+// Compile for repeated validation
+const validateUser = compile(userSchema);
+for (const u of users) validateUser(u);
+
+// Async API
+const result3 = await jsonMaker.validateAsync(myData, schema);
 
 // Validate a JSON file
 const fileResult = jsonMaker.validateFile("./data/user.json", "./json-schema/user.json");
@@ -130,12 +153,25 @@ jayson update --all
 jayson detect schema.json
 ```
 
+## Modular imports
+
+Import only what you need for smaller bundles:
+
+```typescript
+// Validation only (browser-safe, no fs)
+import { validate, compile, validateAsync } from "@casinelli/jayson/validator";
+
+// I/O only
+import { readJson, writeJson, readJsonAsync } from "@casinelli/jayson/io";
+```
+
 ## API overview
 
 | Area | Exports |
 |------|--------|
 | Core | `JsonMaker`, `jsonMaker`, `validateJson`, `validateJsonFile`, `readJson`, `writeJson`, `getSchemaInfo` |
-| Types | `JsonSchema`, `ValidationResult`, `ValidationError`, `SchemaInfo`, `WriteOptions`, etc. |
+| Validation | `validate`, `validateAsync`, `compile`, `pathToInstancePointer`, `ValidateOptions`, `CompiledValidator` |
+| Types | `JsonSchema`, `ValidationResult`, `ValidationError` (with `instancePath`, `keyword`, `code`), `SchemaInfo`, `WriteOptions` |
 | Standards | `StandardsUpdater`, `downloadMetaSchema`, `detectStandard`, `checkForUpdates`, … |
 | Reports | `formatReport`, `formatSummary`, `ReportFormat`, `ReportOptions` |
 | Codegen | `GenerateOptions` (used with `generateTypeScript` / `generateJavaScript`) |
@@ -145,7 +181,15 @@ jayson detect schema.json
 - Types: `string`, `number`, `integer`, `boolean`, `null`, `array`, `object`
 - Required fields, enums, string patterns (regex), number min/max, string minLength/maxLength
 - Nested objects and array `items`
-- Combinators: `oneOf`, `anyOf`
+- Combinators: `oneOf`, `anyOf`, `allOf`
+- `additionalProperties` (boolean or schema)
+- Format (opt-in): `email`, `uri`, `date-time`, `uuid`, etc.
+
+## Benchmarks
+
+```bash
+npm run bench
+```
 
 ## License
 

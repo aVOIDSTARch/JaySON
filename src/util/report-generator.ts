@@ -33,6 +33,8 @@ export interface ReportOptions {
     schemaPath?: string;
     /** Whether to include a timestamp in the report */
     timestamp?: boolean;
+    /** When true, show user-friendly explanation and hint for each error. Default: true. */
+    showExplanations?: boolean;
 }
 
 /**

@@ -32,6 +32,26 @@
         "types": "./dist/cjs/index.d.ts",
         "default": "./dist/cjs/index.js"
       }
+    },
+    "./validator": {
+      "import": {
+        "types": "./dist/esm/validator.d.ts",
+        "default": "./dist/esm/validator.js"
+      },
+      "require": {
+        "types": "./dist/cjs/validator.d.ts",
+        "default": "./dist/cjs/validator.js"
+      }
+    },
+    "./io": {
+      "import": {
+        "types": "./dist/esm/io.d.ts",
+        "default": "./dist/esm/io.js"
+      },
+      "require": {
+        "types": "./dist/cjs/io.d.ts",
+        "default": "./dist/cjs/io.js"
+      }
     }
   },
   "main": "dist/cjs/index.js",
@@ -58,7 +78,9 @@
     "test:unit": "vitest run testing-suite/unit",
     "test:integration": "vitest run testing-suite/integration",
     "test:cli": "vitest run testing-suite/cli",
+    "test:e2e": "vitest run testing-suite/e2e",
     "test:all": "npm run build && npm run test",
+    "bench": "npm run build && node bench/validation.bench.mjs",
     "docs": "typedoc",
     "docs:watch": "typedoc --watch"
   },

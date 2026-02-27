@@ -21,6 +21,8 @@ export interface ReportOptions {
     filePath?: string;
     schemaPath?: string;
     timestamp?: boolean;
+    /** When true, show user-friendly explanation and hint for each error. Default: true. */
+    showExplanations?: boolean;
 }
 
 /**
@@ -37,7 +39,7 @@ export interface ReportOptions {
  * fs.writeFileSync("report.html", html);
  */
 export function formatReport(result: ValidationResult, options: ReportOptions = {}): string {
-    const { title = "Validation Report", filePath, schemaPath, timestamp = true } = options;
+    const { title = "Validation Report", filePath, schemaPath, timestamp = true, showExplanations = true } = options;
 
     const statusColor = result.valid ? "#22c55e" : "#ef4444";
     const statusText = result.valid ? "VALID" : "INVALID";
@@ -89,7 +91,7 @@ export function formatReport(result: ValidationResult, options: ReportOptions = 
         html += `        <h2 style="font-size: 18px; margin: 24px 0 16px 0; color: #111827;">Errors</h2>\n`;
 
         result.errors.forEach((error, index) => {
-            html += formatError(error, index + 1);
+            html += formatError(error, index + 1, showExplanations);
         });
     }
 
@@ -108,7 +110,7 @@ export function formatReport(result: ValidationResult, options: ReportOptions = 
  * @returns {string} HTML fragment for the error
  * @private
  */
-function formatError(error: ValidationError, index: number): string {
+function formatError(error: ValidationError, index: number, showExplanations: boolean = true): string {
     let html = `        <div style="background: #fef2f2; border-left: 4px solid #ef4444; padding: 12px 16px; margin-bottom: 12px; border-radius: 0 6px 6px 0;">
             <div style="font-weight: 600; color: #991b1b; margin-bottom: 8px;">Error #${index}</div>
             <div style="font-size: 14px; color: #1f2937;">
@@ -119,6 +121,15 @@ function formatError(error: ValidationError, index: number): string {
     if (error.value !== undefined) {
         const valueStr = formatValue(error.value);
         html += `                <div><strong>Value:</strong> <code style="background: #fee2e2; padding: 2px 6px; border-radius: 3px;">${escapeHtml(valueStr)}</code></div>\n`;
+    }
+
+    if (showExplanations) {
+        if (error.explanation) {
+            html += `                <div style="margin-top: 8px; padding: 8px; background: #fef9c3; border-radius: 4px; font-size: 13px;"><strong>Why:</strong> ${escapeHtml(error.explanation)}</div>\n`;
+        }
+        if (error.hint) {
+            html += `                <div style="margin-top: 4px; padding: 8px; background: #dcfce7; border-radius: 4px; font-size: 13px;"><strong>Fix:</strong> ${escapeHtml(error.hint)}</div>\n`;
+        }
     }
 
     html += `            </div>
