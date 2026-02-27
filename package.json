@@ -1,6 +1,6 @@
 {
   "name": "@casinelli/jayson",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Comprehensive, lightweight, and fast JSON library: schema validation, I/O, transforms, type generation, and reports. Zero runtime dependencies.",
   "keywords": [
     "json",
